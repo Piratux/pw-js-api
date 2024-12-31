@@ -12,6 +12,11 @@
     "browsify-dev": "cross-env NODE_ENV=development webpack --mode=development",
     "prepare": "run-s build:proto build browsify"
   },
+  "exports": {
+    "require": "./dist/index.js",
+    "import": "./esm.js",
+    "types": "./dis/index.d.ts"
+  },
   "keywords": [],
   "author": "Doomester",
   "license": "MIT",
