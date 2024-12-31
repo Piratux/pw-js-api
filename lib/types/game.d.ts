@@ -1,4 +1,4 @@
-import { WorldPacket } from "../gen/world_pb.js";
+/** @module Types/Game */
 
 export interface GameClientSettings {
     /**

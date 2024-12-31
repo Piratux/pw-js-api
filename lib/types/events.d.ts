@@ -1,3 +1,4 @@
+/** @module Types/Events */
 import { WorldPacket } from "../gen/world_pb.js";
 
 type WorldEvent = WorldPacket["packet"];

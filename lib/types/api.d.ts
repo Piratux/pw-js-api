@@ -1,3 +1,4 @@
+/** @module Types/Api */
 export interface APIFailure {
     code: number;
     message: string;

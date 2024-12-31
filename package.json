@@ -2,7 +2,6 @@
   "name": "pw-js-api",
   "version": "0.0.1",
   "description": "A PixelWalker Library, aims to be minimal with support for browsers.",
-  "main": "./dist/index.js",
   "scripts": {
     "test": "bun test/index.ts",
     "build": "rimraf dist && tsc -p tsconfig.json",
@@ -14,13 +13,12 @@
   },
   "exports": {
     "require": "./dist/index.js",
-    "import": "./esm.js",
-    "types": "./dis/index.d.ts"
+    "import": "./esm.mjs",
+    "types": "./dist/index.d.ts"
   },
   "keywords": [],
   "author": "Doomester",
   "license": "MIT",
-  "type": "module",
   "devDependencies": {
     "@bufbuild/buf": "^1.48.0",
     "@bufbuild/protoc-gen-es": "^2.2.3",
