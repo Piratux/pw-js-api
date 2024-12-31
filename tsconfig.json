@@ -9,8 +9,9 @@
 
     "rootDir": "lib",
 
-    "target": "ES2022",
+    "target": "ES6",
     "module": "Node16",
+    "moduleResolution": "node16",
 
     "declaration": true,
 
