@@ -1,0 +1,12 @@
+version: v2
+managed:
+  enabled: true
+plugins:
+  # This will invoke protoc-gen-es and write output to src/gen
+  - local: protoc-gen-es
+    out: lib/gen
+    opt:
+      # Add more plugin options here
+      - target=ts
+inputs:
+  - directory: input

@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "lib": ["DOM", "ES2022"],
+    "allowJs": true,
+    "inlineSourceMap": true,
+    "importHelpers": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "rootDir": "lib",
+
+    "target": "ES2022",
+    "module": "Node16",
+
+    "declaration": true,
+
+    "newLine": "LF",
+
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "strict": true,
+    "skipLibCheck": false,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "strictPropertyInitialization": true,
+    "strictBindCallApply": true,
+    "noEmitOnError": true,
+    "allowSyntheticDefaultImports": true,
+  },
+  "include": ["lib/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test"]
+}
