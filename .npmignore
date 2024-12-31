@@ -1,0 +1,6 @@
+lib/
+tsconfig.json
+.vscode/
+.github/
+webpack.config.cjs
+pnpm-lock.yaml
