@@ -10,7 +10,7 @@
     "browsify": "rimraf browser && npm-run-all -p browsify-*",
     "browsify-prod": "cross-env NODE_ENV=production webpack --mode=production",
     "browsify-dev": "cross-env NODE_ENV=development webpack --mode=development",
-    "prepare": "run-s build build:proto browsify"
+    "prepare": "run-s build:proto build browsify"
   },
   "keywords": [],
   "author": "Doomester",
