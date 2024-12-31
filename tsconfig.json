@@ -4,14 +4,15 @@
     "lib": ["DOM", "ES2022"],
     "allowJs": true,
     "inlineSourceMap": true,
-    "importHelpers": false,
+    "importHelpers": true,
     "forceConsistentCasingInFileNames": true,
 
     "rootDir": "lib",
 
     "target": "ES6",
-    "module": "Node16",
-    "moduleResolution": "node16",
+    "module": "CommonJS",
+
+    "moduleResolution": "node",
 
     "declaration": true,
 
