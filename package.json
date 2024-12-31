@@ -1,10 +1,10 @@
 {
   "name": "pw-js-api",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A PixelWalker Library, aims to be minimal with support for browsers.",
   "scripts": {
     "test": "bun test/index.ts",
-    "build": "rimraf dist && tsc -p tsconfig.json",
+    "build": "rimraf dist && tsc -p tsconfig.json && ncp lib/types dist/types",
     "build:proto": "node scripts/build-proto.mjs && buf generate",
     "browsify": "rimraf browser && npm-run-all -p browsify-*",
     "browsify-prod": "cross-env NODE_ENV=production webpack --mode=production",
@@ -20,19 +20,20 @@
   "author": "Doomester",
   "license": "MIT",
   "devDependencies": {
-    "@bufbuild/buf": "^1.48.0",
-    "@bufbuild/protoc-gen-es": "^2.2.3",
-    "@types/node": "^22.10.2",
-    "cross-env": "^7.0.3",
-    "npm-run-all": "^4.1.5",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.7.2",
-    "webpack": "^5.97.1",
-    "webpack-cli": "^6.0.1"
+    "@bufbuild/buf": "~1.48.0",
+    "@bufbuild/protoc-gen-es": "~2.2.3",
+    "@types/node": "~22.10.2",
+    "cross-env": "~7.0.3",
+    "ncp": "^2.0.0",
+    "npm-run-all": "~4.1.5",
+    "rimraf": "~6.0.1",
+    "typescript": "~5.7.2",
+    "webpack": "~5.97.1",
+    "webpack-cli": "~6.0.1"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.2.3",
-    "isows": "^1.0.6",
-    "tslib": "^2.8.1"
+    "@bufbuild/protobuf": "~2.2.3",
+    "isows": "~1.0.6",
+    "tslib": "~2.8.1"
   }
 }

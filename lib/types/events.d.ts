@@ -1,8 +1,7 @@
 /** @module Types/Events */
-import { WorldPacket } from "../gen/world_pb.js";
+import type { WorldPacket } from "../gen/world_pb.js";
 
-type WorldEvent = WorldPacket["packet"];
-export type WorldEventNames = NonNullable<WorldEvent["case"]>;
+export type WorldEventNames = NonNullable<WorldPacket["packet"]["case"]>;
 export type WorldEventData<N extends WorldEventNames> = WorldPacket["packet"] & { name: N };
 
 export type WorldEvents = { [K in WorldEventNames]: ((WorldEventData<K> & { case: K })["value"]) }
