@@ -200,7 +200,7 @@ export default class PWApiClient {
     getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false) {
         if (toURL) return `${Endpoint.Api}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
 
-        return this.request<Uint8Array|APIFailure>(this.getMinimap(world, true))
+        return this.request<ArrayBuffer|APIFailure>(this.getMinimap(world, true))
             .then(res => {
                 if ("message" in res) throw Error("Minimap doesn't exist, the world may be unlisted.");
 
@@ -259,7 +259,7 @@ export default class PWApiClient {
             // else if (res.status !== 200) throw Error("")
 
             if (res.headers.get("content-type")?.startsWith("application/json")) return res.json() as T;
-            else return res.bytes() as T;
+            else return res.arrayBuffer() as T;
         });
     }
 }
