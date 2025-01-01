@@ -13,3 +13,5 @@ export type OmitRecursively<T, K extends PropertyKey> = Omit<
     { [P in keyof T]: OmitDistributive<T[P], K> },
     K
 >
+
+type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;

@@ -1,5 +1,5 @@
 import type PWApiClient from "../api/PWApiClient.js";
-import { Ping, WorldPacketSchema } from "../gen/world_pb.js";
+import { Ping, WorldBlockFilledPacket, WorldBlockPlacedPacket, WorldPacketSchema } from "../gen/world_pb.js";
 import type { GameClientSettings, WorldJoinData } from "../types/game.js"
 import { Endpoint } from "../util/Constants.js";
 
@@ -7,7 +7,7 @@ import { WebSocket } from "isows";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { MergedEvents, WorldEvents } from "../types/events.js";
 import Bucket from "../util/Bucket.js";
-import type { OmitRecursively, Promisable } from "../types/misc.js";
+import type { OmitRecursively, Optional, Promisable } from "../types/misc.js";
 
 export default class PWGameClient {
     settings: GameClientSettings;
@@ -213,7 +213,7 @@ export default class PWGameClient {
      * @param value Value of the packet to send along with, note that some properties are optional.
      * @param direct If it should skip queue.
      */
-    send<Event extends keyof WorldEvents>(type: Event, value?: OmitRecursively<WorldEvents[Event], "$typeName"|"$unknown">, direct = false) {
+    send<Event extends keyof WorldEvents>(type: Event, value?: OmitRecursively<SendEvent<Event, WorldEvents>, "$typeName"|"$unknown">, direct = false) {
         this.invoke("debug", "Sent " + type + " with " + (value === undefined ? "0" : Object.keys(value).length) + " parameters.");
 
         const send = () => this.socket?.send(
@@ -228,3 +228,11 @@ export default class PWGameClient {
         }, type === "playerChatPacket")
     }
 }
+
+// "WorldBlockFilledPacket" doesn't even bloody work, but I cba as this will make do since block place is the only thing matters.
+type SendEvent<E extends keyof WorldEvents, WE extends WorldEvents> 
+    = E extends "worldBlockPlacedPacket" ? 
+        Optional<WorldBlockPlacedPacket, "extraFields"> 
+        : E extends "WorldBlockFilledPacket" ?
+            Optional<WorldBlockFilledPacket, "extraFields">
+            : WE[E];
