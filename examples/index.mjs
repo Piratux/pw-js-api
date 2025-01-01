@@ -2,7 +2,7 @@
 // - 2025-01-01 21:37 UTC+0
 
 import { PWApiClient } from "pw-js-api";
-import { swapObject } from "./util";
+import { swapObject } from "./util.mjs";
 
 import { setTimeout } from "node:timers/promises";
 
