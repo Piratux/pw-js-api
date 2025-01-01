@@ -7,7 +7,7 @@ import { WebSocket } from "isows";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { MergedEvents, WorldEvents } from "../types/events.js";
 import Bucket from "../util/Bucket.js";
-import { Promisable } from "../types/misc.js";
+import type { OmitRecursively, Promisable } from "../types/misc.js";
 
 export default class PWGameClient {
     settings: GameClientSettings;
@@ -213,7 +213,7 @@ export default class PWGameClient {
      * @param value Value of the packet to send along with, note that some properties are optional.
      * @param direct If it should skip queue.
      */
-    send<Event extends keyof WorldEvents>(type: Event, value?: Omit<WorldEvents[Event], "$typeName"|"$unknown">, direct = false) {
+    send<Event extends keyof WorldEvents>(type: Event, value?: OmitRecursively<WorldEvents[Event], "$typeName"|"$unknown">, direct = false) {
         this.invoke("debug", "Sent " + type + " with " + (value === undefined ? "0" : Object.keys(value).length) + " parameters.");
 
         const send = () => this.socket?.send(
