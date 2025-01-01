@@ -89,7 +89,7 @@ export default class PWApiClient {
      * 
      * The 3rd parameter is for if you wish to customise the reconnectability of the game client.
      */
-    joinWorld(roomId: string, obj?: { joinData?: WorldJoinData, gameSettings?: GameClientSettings }) {
+    joinWorld(roomId: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) {
         const game = new PWGameClient(this, obj?.gameSettings);
 
         return game.joinWorld(roomId, obj?.joinData);
