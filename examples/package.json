@@ -1,0 +1,19 @@
+{
+  "name": "pw-snake-js-bot",
+  "version": "0.0.1",
+  "description": "An example bot that does simple snake and ping command",
+  "main": "./index.js",
+  "scripts": {
+    "start": "node ./index.js"
+  },
+  "keywords": ["PixelWalker", "Example"],
+  "author": "Doomester",
+  "license": "Unlicense",
+  "type": "module",
+  "dependencies": {
+    "pw-js-api": "^0.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.3"
+  }
+}
