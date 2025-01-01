@@ -7,12 +7,15 @@ import { WebSocket } from "isows";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { MergedEvents, WorldEvents } from "../types/events.js";
 import Bucket from "../util/Bucket.js";
+import { Promisable } from "../types/misc.js";
 
 export default class PWGameClient {
     settings: GameClientSettings;
 
     api: PWApiClient;
     socket?: WebSocket;
+
+    #prevWorldId?: string;
 
     protected totalBucket = new Bucket(100, 1000);
     protected chatBucket = new Bucket(10, 1000);
@@ -59,11 +62,14 @@ export default class PWGameClient {
         const connectUrl = `${Endpoint.GameWS}/room/${joinReq.token}`
             + (joinData === undefined ? "" : "?joinData=" + btoa(JSON.stringify(joinData)));
 
+        this.#prevWorldId = roomId;
+
         let count = this.settings.reconnectCount ?? 3;
 
         return new Promise((res, rej) => {
             const timer = setTimeout(() => {
-                if (count-- < 0) rej(new Error("Unable to (re)connect."))
+                if (count-- < 0) rej(new Error("Unable to (re)connect."));
+                this.invoke("debug", "Failed to reconnect, retrying.");
 
                 this.socket = this.#createSocket(connectUrl, timer, res);
 
@@ -84,7 +90,8 @@ export default class PWGameClient {
         socket.onopen = (evt) => {
             clearTimeout(timer);
     
-            console.log("Connected.");
+            this.invoke("debug", "Connected successfully.");
+            // console.log("Connected.");
             // console.log("Connected: " + new Date(ev.timeStamp));
 
             res(this);
@@ -94,17 +101,22 @@ export default class PWGameClient {
     }
 
     protected onSocketClose(evt: CloseEvent) {
-        this.callbacks.debug?.("Server closed connection due to " + evt.reason + ", code: " + evt.code);
+        this.invoke("debug", `Server closed connection due to code: ${evt.code}, reason: ${evt.reason}.`);
+
+        if (this.settings.reconnectable) {
+            if (this.#prevWorldId) return this.joinWorld(this.#prevWorldId);
+            else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
+        }
     }
 
     protected onSocketMessage(evt: MessageEvent) {
         const { packet } = fromBinary(WorldPacketSchema, evt.data instanceof ArrayBuffer ? new Uint8Array(evt.data as ArrayBuffer) : evt.data);
 
-        this.callbacks.debug?.("Received " + packet.case);
+        this.invoke("debug", "Received " + packet.case);
 
         if (packet.case === undefined) {  
-            return this.callbacks["unknown"]?.(packet.value);
-        } else this.callbacks.raw?.(packet);;
+            return this.invoke("unknown", packet.value)
+        } else this.invoke("raw", packet);//this.callbacks.raw?.(packet);;
 
         switch (packet.case) {
             case "playerInitPacket":
@@ -120,8 +132,7 @@ export default class PWGameClient {
                 break;
         }
 
-        //@ts-expect-error
-        this.callbacks[packet.case]?.(packet.value);
+        this.invoke(packet.case, packet.value);
     }
 
     // listen<Event extends keyof WorldEvents>(type: Event) {
@@ -134,17 +145,65 @@ export default class PWGameClient {
      * 
      * NOTE: the "this" won't be the client itself. You will need to bind yourself if you want to keep this.
      */
-    callbacks = {
+    protected callbacks = {
 
-    } as Partial<{ [K in keyof MergedEvents]: (data: MergedEvents[K]) => void }>;
+    } as Partial<{ [K in keyof MergedEvents]: Array<(data: MergedEvents[K]) => Promisable<void | "STOP">> }>;
 
     /**
-     * Can be used instead of setting callbacks object properties directly if preferred.
+     * Adds a listener for the event type, it can even be a promise too.
+     * 
+     * If the callback returns a specific string "STOP", it will prevent further listeners from being invoked.
      */
-    setCallBack<Event extends keyof MergedEvents>(type: Event, cb: (data: MergedEvents[Event]) => void) : PWGameClient {
-        this.callbacks[type] = cb;
+    addCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event]) => Promisable<void | "STOP">>) : PWGameClient {
+        // this.callbacks[type] = cb;
+
+        if (this.callbacks[type] === undefined) this.callbacks[type] = [];
+
+        if (cbs.length === 0) return this;
+
+        this.callbacks[type].push(...cbs);
 
         return this;
+    }
+
+    /**
+     * @param type The type of the event
+     * @param cb It can be the function itself (to remove that specific function). If undefined, it will remove ALL functions from that list, it will return undefined.
+     */
+    removeCallback<Event extends keyof MergedEvents>(type: Event, cb?: (data: MergedEvents[Event]) => Promisable<void | "STOP">) : undefined | ((data: MergedEvents[Event]) => Promisable<void | "STOP">) {
+        const callbacks = this.callbacks[type];
+
+        if (callbacks === undefined || cb === undefined) { callbacks?.splice(0); return; }
+        else {
+            for (let i = 0, len = callbacks.length; i < len; i++) {
+                if (callbacks[i] === cb) {
+                    return callbacks.splice(i, 1)[0];
+                }
+            }
+        }
+
+        return;
+    }
+
+    /**
+     * INTERNAL. Invokes all functions of a callback type, unless one of them prohibits in transit.
+     */
+    protected async invoke<Event extends keyof MergedEvents>(type: Event, data: MergedEvents[Event]) : Promise<number> {
+        const cbs = this.callbacks[type];
+        
+        let count = 0;
+
+        if (cbs === undefined) return count;
+
+        for (let i = 0, len = cbs.length; i < len; i++) {
+            const res = await cbs[i](data);
+
+            count++;
+
+            if (res === "STOP") return count; 
+        }
+
+        return count;
     }
 
     /**
@@ -155,7 +214,7 @@ export default class PWGameClient {
      * @param direct If it should skip queue.
      */
     send<Event extends keyof WorldEvents>(type: Event, value?: Omit<WorldEvents[Event], "$typeName"|"$unknown">, direct = false) {
-        this.callbacks.debug?.("Sent " + type + " with " + (value === undefined ? "0" : Object.keys(value).length) + " parameters.");
+        this.invoke("debug", "Sent " + type + " with " + (value === undefined ? "0" : Object.keys(value).length) + " parameters.");
 
         const send = () => this.socket?.send(
             toBinary(WorldPacketSchema, create(WorldPacketSchema, { packet: { case: type, value } as unknown as { case: "ping", value: Ping } }))

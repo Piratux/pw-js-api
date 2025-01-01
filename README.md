@@ -48,8 +48,6 @@ When you have these scripts in your HTML file, you will be able to use the globa
 
 The difference between this and preexisting libraries is that this project aims to be as minimal as possible, trying to be more direct. As such, there are no helpers that comes along with the package itself.
 
-This project also uses functions instead of events for messages. This may be replaced if this isn't 
-
 ## License
 
 [MIT](/LICENSE) License.
