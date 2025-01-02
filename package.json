@@ -17,7 +17,10 @@
     "require": "./dist/index.js",
     "types": "./dist/index.d.ts"
   },
-  "keywords": ["PixelWalker", "Typescript"],
+  "keywords": [
+    "PixelWalker",
+    "Typescript"
+  ],
   "author": "Doomester",
   "repository": {
     "type": "git",
@@ -27,6 +30,7 @@
   "devDependencies": {
     "@bufbuild/buf": "~1.48.0",
     "@bufbuild/protoc-gen-es": "~2.2.3",
+    "@favware/npm-deprecate": "^2.0.0",
     "@types/node": "~22.10.2",
     "cross-env": "~7.0.3",
     "ncp": "^2.0.0",
