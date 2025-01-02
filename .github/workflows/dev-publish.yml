@@ -1,4 +1,4 @@
-on: workflow_dispatch
+on: [workflow_dispatch, push]
 
 jobs:
   publish:
@@ -15,4 +15,5 @@ jobs:
       - uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
+          tag: dev
           provenance: true
