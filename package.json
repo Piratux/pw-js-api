@@ -19,6 +19,10 @@
   },
   "keywords": ["PixelWalker", "Typescript"],
   "author": "Doomester",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doomestee/pw-js-api.git"
+  },
   "license": "MIT",
   "devDependencies": {
     "@bufbuild/buf": "~1.48.0",
