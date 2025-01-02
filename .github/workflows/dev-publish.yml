@@ -7,11 +7,20 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - name: Install Node
+        uses: actions/setup-node@v3
         with:
           node-version: "20"
-      - run: npm ci
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm i --frozen-lockfile
       - name: Set Version
         run: |
           git config user.email "<>"
@@ -22,11 +31,10 @@ jobs:
           v="$version-dev.$hash"
           echo "Setting Version: $v"
           contents=$(jq --arg version "$v" '.version = $version' package.json) && echo -E "${contents}" > package.json
-      - uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          tag: dev
-          provenance: true
+      - name: Publish
+        run: pnpm publish --provenance --no-git-checks --tag dev --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Deprecate Old Versions
         run: npx -y npm-deprecate
         env:
