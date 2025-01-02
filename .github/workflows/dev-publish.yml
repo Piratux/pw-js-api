@@ -26,7 +26,7 @@ jobs:
           git config user.email "<>"
           git config user.name "GitHub Actions"
           pnpm version --no-git-tag-version patch
-          hash=$(git rev-parse --short dev)
+          hash=$(git rev-parse --short origin/main)
           version=$(jq -r .version package.json)
           v="$version-dev.$hash"
           echo "Setting Version: $v"
