@@ -12,7 +12,7 @@ import type { OmitRecursively, Optional, Promisable } from "../types/misc.js";
 export default class PWGameClient {
     settings: GameClientSettings;
 
-    api: PWApiClient;
+    api?: PWApiClient;
     socket?: WebSocket;
 
     #prevWorldId?: string;
@@ -23,21 +23,23 @@ export default class PWGameClient {
     /**
      * NOTE: After constructing, you must then run .init() to connect the API IF you're using email/password.
      */
-    constructor(api: PWApiClient, settings?: Partial<GameClientSettings>) {
+    
+    constructor(api: PWApiClient, settings?: Partial<GameClientSettings>);
+    constructor(settings?: Partial<GameClientSettings>);
+    constructor(api?: PWApiClient | Partial<GameClientSettings>, settings?: Partial<GameClientSettings>) {
+        // I can't use instanceof cos of circular reference kms.
+        if (api && "getJoinKey" in api) this.api = api;
+        else if (api) {
+            settings = api;
+            api = undefined;
+        }
+
         this.settings = {
             reconnectable: settings?.reconnectable ?? true,
             reconnectCount: settings?.reconnectCount ?? 3,
             reconnectInterval: settings?.reconnectInterval ?? 5500,
             handlePackets: settings?.handlePackets ?? ["PING"]
         };
-        
-        this.api = api;
-    }
-
-    init() {
-        // For now this only authenticates idk why
-
-        return this.api.authenticate();
     }
 
     get connected() {
@@ -50,6 +52,8 @@ export default class PWGameClient {
      * (This returns itself for chaining)
      */
     async joinWorld(roomId: string, joinData?: WorldJoinData) : Promise<PWGameClient> {
+        if (!this.api) throw Error("This can only work if you've used APIClient to join the world in the first place.");
+
         if (this.socket?.readyState === WebSocket.CONNECTING) throw Error("Already trying to connect.");
         // if (!this.api.loggedIn) throw Error("API isn't logged in, you must use authenticate first.");
 
@@ -100,10 +104,44 @@ export default class PWGameClient {
         return socket;
     }
 
+    /**
+     * This is a more direct route if you already have a join key acquired via Pixelwalker's API.
+     * 
+     * Useful for those wary of security.
+     * 
+     * NOTE: You must give the room type, as to avoid circular dependency. You can use APIClient#getRoomTypes which is also available as static
+     */
+    static joinWorld(joinKey: string, roomType: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) {
+        //const roomType = this.api.roomTypes?.[0] ?? await this.api.getRoomTypes().then(rTypes => rTypes[0]);
+
+        const connectUrl = `${Endpoint.GameWS}/room/${joinKey}`
+            + (obj?.joinData === undefined ? "" : "?joinData=" + btoa(JSON.stringify(obj.joinData)));
+
+        const cli = new PWGameClient(obj?.gameSettings);
+
+        let count = cli.settings.reconnectCount ?? 3;
+
+        return new Promise((res, rej) => {
+            const timer = setTimeout(() => {
+                if (count-- < 0) rej(new Error("Unable to (re)connect."));
+                cli.invoke("debug", "Failed to reconnect, retrying.");
+                // I know this is impossible but anyway
+
+                cli.socket = cli.#createSocket(connectUrl, timer, res);
+
+                timer.refresh();
+            }, cli.settings.reconnectInterval ?? 5500);
+
+            cli.socket = cli.#createSocket(connectUrl, timer, res);
+        });
+    }
+
     protected onSocketClose(evt: CloseEvent) {
         this.invoke("debug", `Server closed connection due to code: ${evt.code}, reason: ${evt.reason}.`);
 
         if (this.settings.reconnectable) {
+            if (this.api === undefined) return this.invoke("debug", "Not attempting to reconnect as this game client was created with a join token.");
+
             if (this.#prevWorldId) return this.joinWorld(this.#prevWorldId);
             else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
         }

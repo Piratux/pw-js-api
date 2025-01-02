@@ -121,6 +121,18 @@ export default class PWApiClient {
     }
 
     /**
+     * Non-authenticated. This will refresh the room types each time, so make sure to check if roomTypes is available.
+     */
+    static getRoomTypes() {
+        return this.request<string[]>(`${Endpoint.GameHTTP}/listroomtypes`)
+            .then(res => {
+                PWApiClient.roomTypes = res;
+
+                return res;
+            })
+    }
+
+    /**
      * Non-authenticated. Returns the mappings from the game API.
      */
     getMappings() {
@@ -221,9 +233,6 @@ export default class PWApiClient {
     //         .then(res => res instanceof Uint8Array ? [] : res ?? []);
     // }
 
-    // TODO: QUERY FILTER AND STUFF!
-    // https://github.com/MartenM/PixelPilot/blob/main/src/PixelPilot.Core/Api/PixelApiClient.cs very helpful yummy
-
     /**
      * IMPORTANT: This will return JSON for any responses that have the content-type of json, anything else will be sent back as Uint8array.
      * If you're expecting raw bytes, make sure the endpoint is guaranteed to give you that otherwise there isn't a reason.
@@ -231,16 +240,16 @@ export default class PWApiClient {
      * This requires the manager to be authenticated, it will error if otherwise.
      * @param url Requires to be a full URL with endpoint unfortunately. It will throw error if it doesn't match any of the 2 HTTP endpoint URLs.
      * @param body If this is passed, the request will become a POST. (If you need to send a POST but has no data, just send an empty object).
-     * @param isAuthenticated If true, this will send the token as the header.
+     * @param token The API token (not join key), this is if you wish to use authenticated API calls without having to instantise an api client yourself.
      */
-    protected request<T>(url: string, body?: Record<string, any>|string, isAuthenticated = false) : Promise<T> {
+    static request<T>(url: string, body?: Record<string, any>|string, token?: string) : Promise<T> {
         if (!(url.startsWith(Endpoint.Api) || url.startsWith(Endpoint.GameHTTP))) throw Error("URL given does not have the correct endpoint URL, this is for safety.");
 
         const headers:Record<string, string> = {
             // "user-agent": "PW-TS-API/0.0.1"
         };
 
-        if (this.#token && isAuthenticated) headers["authorization"] = this.#token;
+        if (typeof token === "string") headers["authorization"] = token;
 
         if (typeof body === "object") body = JSON.stringify(body);
 
@@ -261,5 +270,19 @@ export default class PWApiClient {
             if (res.headers.get("content-type")?.startsWith("application/json")) return res.json() as T;
             else return res.arrayBuffer() as T;
         });
+    }
+
+
+    /**
+     * IMPORTANT: This will return JSON for any responses that have the content-type of json, anything else will be sent back as Uint8array.
+     * If you're expecting raw bytes, make sure the endpoint is guaranteed to give you that otherwise there isn't a reason.
+     * 
+     * This requires the manager to be authenticated, it will error if otherwise.
+     * @param url Requires to be a full URL with endpoint unfortunately. It will throw error if it doesn't match any of the 2 HTTP endpoint URLs.
+     * @param body If this is passed, the request will become a POST. (If you need to send a POST but has no data, just send an empty object).
+     * @param isAuthenticated If true, this will send the token as the header.
+     */
+    protected request<T>(url: string, body?: Record<string, any>|string, isAuthenticated = false) : Promise<T> {
+        return PWApiClient.request<T>(url, body, isAuthenticated ? this.#token : undefined)
     }
 }
