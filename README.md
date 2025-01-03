@@ -1,7 +1,6 @@
 # PW-JS-Api
 
-[PixelWalker](https://pixelwalker.net) API implementation for Node.js, Bun and modern browsers.
-
+[PixelWalker](https://pixelwalker.net) API implementation for Node.js, Bun and modern browsers. NPM can be available here: https://www.npmjs.com/package/pw-js-api
 
 Some of the typings may be incomplete, please let me know on discord (doomester) if you need help or clarifications.
 
@@ -32,11 +31,11 @@ bun i pw-js-api
 You could use a CDN like jsdelivr or unpkg. You can put this in your HTML page:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.0.6/browser/pw.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.0.9/browser/pw.prod.js"></script>
 ```
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.0.6/browser/pw.dev.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.0.9/browser/pw.dev.js"></script>
 ```
 
 When you have these scripts in your HTML file, you will be able to use the global variable PW which contains PWGameClient, PWApiClient and Constants.
