@@ -26,16 +26,18 @@ Bun:
 bun i pw-js-api
 ```
 
+NOTE: installing pw-js-api#dev is also available if you wish, there may be no difference but if so, it could be from minor to major changes that changes the way the lib works.
+
 ## Install (Browser)
 
 You could use a CDN like jsdelivr or unpkg. You can put this in your HTML page:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.0.9/browser/pw.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.1.0/browser/pw.prod.js"></script>
 ```
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.0.9/browser/pw.dev.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pw-js-api@0.1.0/browser/pw.dev.js"></script>
 ```
 
 When you have these scripts in your HTML file, you will be able to use the global variable PW which contains PWGameClient, PWApiClient and Constants.
