@@ -53,8 +53,9 @@ export default class PWApiClient {
     authenticate() : Promise<AuthResultSuccess | APIFailure>;
     /**
      * Overrides local account details, the parameters are not needed if PW Api was already created with email/password in the first place.
+     * This is for those that used a token in the first place, the accounts won't be saved in the instance.
      */
-    authenticate(email?: string, password?: string) : Promise<AuthResultSuccess | APIFailure>;
+    authenticate(email: string, password: string) : Promise<AuthResultSuccess | APIFailure>;
     authenticate(email?: string, password?: string) {
         if (email === undefined) {
             if (this.#account.email.length === 0 || this.#account.password.length === 0) throw Error("No email/password given.");
