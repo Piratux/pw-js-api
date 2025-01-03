@@ -108,12 +108,8 @@ export default class PWGameClient {
      * This is a more direct route if you already have a join key acquired via Pixelwalker's API.
      * 
      * Useful for those wary of security.
-     * 
-     * NOTE: You must give the room type, as to avoid circular dependency. You can use APIClient#getRoomTypes which is also available as static
      */
-    static joinWorld(joinKey: string, roomType: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) {
-        //const roomType = this.api.roomTypes?.[0] ?? await this.api.getRoomTypes().then(rTypes => rTypes[0]);
-
+    static joinWorld(joinKey: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) {
         const connectUrl = `${Endpoint.GameWS}/room/${joinKey}`
             + (obj?.joinData === undefined ? "" : "?joinData=" + btoa(JSON.stringify(obj.joinData)));
 
