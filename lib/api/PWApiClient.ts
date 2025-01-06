@@ -11,12 +11,12 @@ export default class PWApiClient {
     /**
      * The account token, this is private to prevent tampering.
      */
-    #token?: string;
+    private token?: string;
 
     /**
      * Account details with email and password, if applicable.
      */
-    #account = {
+    private account = {
         email: "",
         password: ""
     }
@@ -35,15 +35,15 @@ export default class PWApiClient {
     constructor(email: string, password: string);
     constructor(email: string, password?: string) {
         if (password === undefined) {
-            this.#token = email;
+            this.token = email;
             this.loggedIn = true;
             return;
         }
 
-        this.#account.email = email;
-        this.#account.password = password;
+        this.account.email = email;
+        this.account.password = password;
 
-        // this.#token = token;
+        // this.token = token;
     }
 
     /**
@@ -58,17 +58,17 @@ export default class PWApiClient {
     authenticate(email: string, password: string) : Promise<AuthResultSuccess | APIFailure>;
     authenticate(email?: string, password?: string) {
         if (email === undefined) {
-            if (this.#account.email.length === 0 || this.#account.password.length === 0) throw Error("No email/password given.");
+            if (this.account.email.length === 0 || this.account.password.length === 0) throw Error("No email/password given.");
 
-            email = this.#account.email;
-            password = this.#account.password;
+            email = this.account.email;
+            password = this.account.password;
         }
 
         return this.request<AuthResultSuccess | APIFailure>(`${Endpoint.Api}/api/collections/users/auth-with-password`,
             { identity: email, password }
         ).then(res => {
             if ("token" in res) {
-                this.#token = res.token;
+                this.token = res.token;
                 this.loggedIn = true;
             }
 
@@ -284,6 +284,6 @@ export default class PWApiClient {
      * @param isAuthenticated If true, this will send the token as the header.
      */
     protected request<T>(url: string, body?: Record<string, any>|string, isAuthenticated = false) : Promise<T> {
-        return PWApiClient.request<T>(url, body, isAuthenticated ? this.#token : undefined)
+        return PWApiClient.request<T>(url, body, isAuthenticated ? this.token : undefined)
     }
 }

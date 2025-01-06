@@ -15,7 +15,7 @@ export default class PWGameClient {
     api?: PWApiClient;
     socket?: WebSocket;
 
-    #prevWorldId?: string;
+    private prevWorldId?: string;
 
     protected totalBucket = new Bucket(100, 1000);
     protected chatBucket = new Bucket(10, 1000);
@@ -66,7 +66,7 @@ export default class PWGameClient {
         const connectUrl = `${Endpoint.GameWS}/room/${joinReq.token}`
             + (joinData === undefined ? "" : "?joinData=" + btoa(JSON.stringify(joinData)));
 
-        this.#prevWorldId = roomId;
+        this.prevWorldId = roomId;
 
         let count = this.settings.reconnectCount ?? 3;
 
@@ -75,16 +75,19 @@ export default class PWGameClient {
                 if (count-- < 0) rej(new Error("Unable to (re)connect."));
                 this.invoke("debug", "Failed to reconnect, retrying.");
 
-                this.socket = this.#createSocket(connectUrl, timer, res);
+                this.socket = this.createSocket(connectUrl, timer, res);
 
                 timer.refresh();
             }, this.settings.reconnectInterval ?? 5500);
 
-            this.socket = this.#createSocket(connectUrl, timer, res);
+            this.socket = this.createSocket(connectUrl, timer, res);
         });
     }
 
-    #createSocket(url: string, timer: NodeJS.Timeout, res: (value: PWGameClient) => void) {
+    /**
+     * INTERNAL
+     */
+    private createSocket(url: string, timer: NodeJS.Timeout, res: (value: PWGameClient) => void) {
         const socket = new WebSocket(url);
         socket.binaryType = "arraybuffer";
 
@@ -123,12 +126,12 @@ export default class PWGameClient {
                 cli.invoke("debug", "Failed to reconnect, retrying.");
                 // I know this is impossible but anyway
 
-                cli.socket = cli.#createSocket(connectUrl, timer, res);
+                cli.socket = cli.createSocket(connectUrl, timer, res);
 
                 timer.refresh();
             }, cli.settings.reconnectInterval ?? 5500);
 
-            cli.socket = cli.#createSocket(connectUrl, timer, res);
+            cli.socket = cli.createSocket(connectUrl, timer, res);
         });
     }
 
@@ -138,7 +141,7 @@ export default class PWGameClient {
         if (this.settings.reconnectable) {
             if (this.api === undefined) return this.invoke("debug", "Not attempting to reconnect as this game client was created with a join token.");
 
-            if (this.#prevWorldId) return this.joinWorld(this.#prevWorldId);
+            if (this.prevWorldId) return this.joinWorld(this.prevWorldId);
             else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
         }
     }
