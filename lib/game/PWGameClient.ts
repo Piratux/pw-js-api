@@ -136,10 +136,10 @@ export default class PWGameClient {
         }
 
         return new Promise((res, rej) => {
-            if (cli.connectAttempts.count++ > cli.settings.reconnectCount) rej(new Error("Unable to connect due to many attempts."));
+            if (cli.connectAttempts.count++ > cli.settings.reconnectCount) return rej(new Error("Unable to connect due to many attempts."));
 
             const timer = setTimeout(() => {
-                if (cli.connectAttempts.count++ > cli.settings.reconnectCount) rej(new Error("Unable to (re)connect."));
+                if (cli.connectAttempts.count++ > cli.settings.reconnectCount) return rej(new Error("Unable to (re)connect."));
                 cli.invoke("debug", "Failed to reconnect, retrying.");
                 // I know this is impossible but anyway
 
