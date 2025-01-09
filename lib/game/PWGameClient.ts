@@ -20,6 +20,11 @@ export default class PWGameClient {
     protected totalBucket = new Bucket(100, 1000);
     protected chatBucket = new Bucket(10, 1000);
 
+    protected connectAttempts = {
+        time: -1,
+        count: 0,
+    }
+
     /**
      * NOTE: After constructing, you must then run .init() to connect the API IF you're using email/password.
      */
@@ -35,9 +40,10 @@ export default class PWGameClient {
 
         this.settings = {
             reconnectable: settings?.reconnectable ?? true,
-            reconnectCount: settings?.reconnectCount ?? 3,
+            reconnectCount: settings?.reconnectCount ?? 5,
             reconnectInterval: settings?.reconnectInterval ?? 5500,
-            handlePackets: settings?.handlePackets ?? ["PING"]
+            reconnectTimeGap: settings?.reconnectTimeGap ?? 10000,
+            handlePackets: settings?.handlePackets ?? ["PING"],
         };
     }
 
@@ -67,11 +73,17 @@ export default class PWGameClient {
 
         this.prevWorldId = roomId;
 
-        let count = this.settings.reconnectCount ?? 3;
+        if ((this.connectAttempts.time + this.settings.reconnectTimeGap) < Date.now()) {
+            this.connectAttempts = {
+                time: Date.now(), count: 0
+            };
+        }
 
         return new Promise((res, rej) => {
+            if (this.connectAttempts.count++ > this.settings.reconnectCount) rej(new Error("Unable to connect due to many attempts."));
+
             const timer = setTimeout(() => {
-                if (count-- < 0) rej(new Error("Unable to (re)connect."));
+                if (this.connectAttempts.count++ > this.settings.reconnectCount) rej(new Error("Unable to (re)connect."));
                 this.invoke("debug", "Failed to reconnect, retrying.");
 
                 this.socket = this.createSocket(connectUrl, timer, res);
@@ -111,17 +123,23 @@ export default class PWGameClient {
      * 
      * Useful for those wary of security.
      */
-    static joinWorld(joinKey: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) {
+    static joinWorld(joinKey: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) : Promise<PWGameClient> {
         const connectUrl = `${Endpoint.GameWS}/room/${joinKey}`
             + (obj?.joinData === undefined ? "" : "?joinData=" + btoa(JSON.stringify(obj.joinData)));
 
         const cli = new PWGameClient(obj?.gameSettings);
-
-        let count = cli.settings.reconnectCount ?? 3;
+        
+        if ((cli.connectAttempts.time + cli.settings.reconnectTimeGap) < Date.now()) {
+            cli.connectAttempts = {
+                time: Date.now(), count: 0
+            };
+        }
 
         return new Promise((res, rej) => {
+            if (cli.connectAttempts.count++ > cli.settings.reconnectCount) rej(new Error("Unable to connect due to many attempts."));
+
             const timer = setTimeout(() => {
-                if (count-- < 0) rej(new Error("Unable to (re)connect."));
+                if (cli.connectAttempts.count++ > cli.settings.reconnectCount) rej(new Error("Unable to (re)connect."));
                 cli.invoke("debug", "Failed to reconnect, retrying.");
                 // I know this is impossible but anyway
 
@@ -139,9 +157,15 @@ export default class PWGameClient {
 
         if (this.settings.reconnectable) {
             if (this.api === undefined) return this.invoke("debug", "Not attempting to reconnect as this game client was created with a join token.");
+            // if (evt.reason === "Failed to preload the world.") {
+            //     return this.invoke("debug", "Not attempting to reconnect as the world don't exist.");
+            // }
 
-            if (this.prevWorldId) return this.joinWorld(this.prevWorldId);
-            else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
+            if (this.prevWorldId) {
+                this.invoke("debug", "Attempting to reconnect.");
+
+                return this.joinWorld(this.prevWorldId);
+            } else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
         }
     }
 

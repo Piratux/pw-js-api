@@ -12,7 +12,7 @@ export interface GameClientSettings {
      * 
      * The amount of times the client should try to reconnect before it gives up.
      * 
-     * Default: 3.
+     * Default: 5.
      */
     reconnectCount: number;
     /**
@@ -21,6 +21,14 @@ export interface GameClientSettings {
      * Default: 5500.
      */
     reconnectInterval: number;
+    /**
+     * How long (in milliseconds) before the counter for reconnect should reset.
+     * 
+     * NOTE: The counter will carry over even if the bot has successfully joined a world, so if it joins and leaves the world a lot then it may stop reconnecting.
+     * 
+     * Default: 10000.
+     */
+    reconnectTimeGap: number;
     /**
      * There are only 2 values in this list, they will determine whether if the client should handle them automatically or not.
      * 
