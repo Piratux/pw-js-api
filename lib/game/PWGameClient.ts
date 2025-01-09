@@ -23,7 +23,6 @@ export default class PWGameClient {
     /**
      * NOTE: After constructing, you must then run .init() to connect the API IF you're using email/password.
      */
-    
     constructor(api: PWApiClient, settings?: Partial<GameClientSettings>);
     constructor(settings?: Partial<GameClientSettings>);
     constructor(api?: PWApiClient | Partial<GameClientSettings>, settings?: Partial<GameClientSettings>) {
@@ -263,6 +262,21 @@ export default class PWGameClient {
             if (type !== "playerChatPacket") send() 
             else this.chatBucket.queue(() => { send() });
         }, type === "playerChatPacket")
+    }
+
+    /**
+     * By default this will set the game client settings reconnectable to false.
+     * 
+     * If reconnect is true, an additionl parameter can be passed which is the amount of time to wait before it attempts to reconnect (DEFAULT: none)
+     */
+    disconnect(reconnect: number | boolean =false) {
+        // Accept the possibility that people may try to 
+        if (reconnect === true) this.settings.reconnectable = true;
+        else this.settings.reconnectable = false;
+
+        this.socket?.close();
+
+        return this.socket?.readyState === WebSocket.CLOSED;
     }
 }
 
