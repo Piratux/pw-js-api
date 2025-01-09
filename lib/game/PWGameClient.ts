@@ -80,10 +80,10 @@ export default class PWGameClient {
         }
 
         return new Promise((res, rej) => {
-            if (this.connectAttempts.count++ > this.settings.reconnectCount) rej(new Error("Unable to connect due to many attempts."));
+            if (this.connectAttempts.count++ > this.settings.reconnectCount) return rej(new Error("Unable to connect due to many attempts."));
 
             const timer = setTimeout(() => {
-                if (this.connectAttempts.count++ > this.settings.reconnectCount) rej(new Error("Unable to (re)connect."));
+                if (this.connectAttempts.count++ > this.settings.reconnectCount) return rej(new Error("Unable to (re)connect."));
                 this.invoke("debug", "Failed to reconnect, retrying.");
 
                 this.socket = this.createSocket(connectUrl, timer, res);
@@ -164,7 +164,9 @@ export default class PWGameClient {
             if (this.prevWorldId) {
                 this.invoke("debug", "Attempting to reconnect.");
 
-                return this.joinWorld(this.prevWorldId);
+                return this.joinWorld(this.prevWorldId).catch(err => {
+                    this.invoke("debug", err);
+                });
             } else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
         }
     }
