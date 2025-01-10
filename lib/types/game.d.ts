@@ -18,7 +18,9 @@ export interface GameClientSettings {
     /**
      * The interval (in milliseconds) it has to wait each time it's connecting before giving up and trying another one.
      * 
-     * Default: 5500.
+     * NOTE: 4000 is the maximum amount of time before the connection automatically closes if the server doesn't receive init recv back
+     * 
+     * Default: 4000.
      */
     reconnectInterval: number;
     /**

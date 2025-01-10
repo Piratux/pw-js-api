@@ -2,6 +2,7 @@ import type PWApiClient from "../api/PWApiClient.js";
 import { type Ping, type PlayerChatPacket, type WorldBlockFilledPacket, type WorldBlockPlacedPacket, WorldPacketSchema } from "../gen/world_pb.js";
 import type { GameClientSettings, WorldJoinData } from "../types/game.js"
 import { Endpoint } from "../util/Constants.js";
+import { AuthError } from "../util/Errors.js";
 
 import { WebSocket } from "isows";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
@@ -41,7 +42,7 @@ export default class PWGameClient {
         this.settings = {
             reconnectable: settings?.reconnectable ?? true,
             reconnectCount: settings?.reconnectCount ?? 5,
-            reconnectInterval: settings?.reconnectInterval ?? 5500,
+            reconnectInterval: settings?.reconnectInterval ?? 4000,
             reconnectTimeGap: settings?.reconnectTimeGap ?? 10000,
             handlePackets: settings?.handlePackets ?? ["PING"],
         };
@@ -82,38 +83,90 @@ export default class PWGameClient {
         return new Promise((res, rej) => {
             if (this.connectAttempts.count++ > this.settings.reconnectCount) return rej(new Error("Unable to connect due to many attempts."));
 
-            const timer = setTimeout(() => {
+            const timer = setInterval(() => {
                 if (this.connectAttempts.count++ > this.settings.reconnectCount) return rej(new Error("Unable to (re)connect."));
                 this.invoke("debug", "Failed to reconnect, retrying.");
 
-                this.socket = this.createSocket(connectUrl, timer, res);
+                this.socket = this.createSocket(connectUrl, timer as unknown as number, res, rej);
+            }, this.settings.reconnectInterval ?? 4000);
 
-                timer.refresh();
-            }, this.settings.reconnectInterval ?? 5500);
-
-            this.socket = this.createSocket(connectUrl, timer, res);
+            this.socket = this.createSocket(connectUrl, timer as unknown as number, res, rej);
         });
     }
 
     /**
      * INTERNAL
      */
-    private createSocket(url: string, timer: NodeJS.Timeout, res: (value: PWGameClient) => void) {
+    private createSocket(url: string, timer: number, res: (value: PWGameClient) => void, rej: (reason: any) => void) {
         const socket = new WebSocket(url);
         socket.binaryType = "arraybuffer";
 
-        socket.onclose = this.onSocketClose.bind(this);
-        socket.onmessage = this.onSocketMessage.bind(this);
+        // For res/rej.
+        let init = false;
+
+        socket.onmessage = (evt) => {
+            const { packet } = fromBinary(WorldPacketSchema, evt.data instanceof ArrayBuffer ? new Uint8Array(evt.data as ArrayBuffer) : evt.data);
+
+            this.invoke("debug", "Received " + packet.case);
+
+            if (packet.case === undefined) {  
+                return this.invoke("unknown", packet.value)
+            } else this.invoke("raw", packet);//this.callbacks.raw?.(packet);;
+
+            switch (packet.case) {
+                case "playerInitPacket":
+                    if (this.settings.handlePackets.findIndex(v => v === "INIT") !== -1)
+                        this.send("playerInitReceived");
+
+                    if (packet.value.playerProperties?.isWorldOwner) this.totalBucket.interval = 250;
+                    else this.totalBucket.interval = 100;
+
+                    if (!init) {
+                        clearInterval(timer);
+                        init = true; res(this);
+
+                        // Give the client the init again as they might could have missed it even by a few milliseconds.
+                        return setTimeout(() => {
+                            this.invoke(packet.case, packet.value);
+                        }, 1500);
+                    }
+                    break;
+                case "ping":
+                    if (this.settings.handlePackets.findIndex(v => v === "PING") !== -1)
+                        this.send("ping", undefined, true);
+                    break;
+            }
+
+            this.invoke(packet.case, packet.value);
+        }
 
         socket.onopen = (evt) => {
-            clearTimeout(timer);
-    
-            this.invoke("debug", "Connected successfully.");
-            // console.log("Connected.");
-            // console.log("Connected: " + new Date(ev.timeStamp));
-
-            res(this);
+            this.invoke("debug", "Connected successfully, waiting for init packet.");
         };
+
+        socket.onclose = (evt) => {
+            this.invoke("debug", `Server closed connection due to code ${evt.code}, reason: "${evt.reason}".`);
+
+            if (!init) {
+                clearInterval(timer);
+                rej(new AuthError(evt.reason, (evt.code)));
+            }
+
+            if (this.settings.reconnectable) {
+                if (this.api === undefined) return this.invoke("debug", "Not attempting to reconnect as this game client was created with a join token.");
+                // if (evt.reason === "Failed to preload the world.") {
+                //     return this.invoke("debug", "Not attempting to reconnect as the world don't exist.");
+                // }
+
+                if (this.prevWorldId) {
+                    this.invoke("debug", "Attempting to reconnect.");
+
+                    return this.joinWorld(this.prevWorldId).catch(err => {
+                        this.invoke("debug", err);
+                    });
+                } else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
+            }
+        }
 
         return socket;
     }
@@ -138,63 +191,17 @@ export default class PWGameClient {
         return new Promise((res, rej) => {
             if (cli.connectAttempts.count++ > cli.settings.reconnectCount) return rej(new Error("Unable to connect due to many attempts."));
 
-            const timer = setTimeout(() => {
+            const timer = setInterval(() => {
+                cli.socket?.close();
+
                 if (cli.connectAttempts.count++ > cli.settings.reconnectCount) return rej(new Error("Unable to (re)connect."));
                 cli.invoke("debug", "Failed to reconnect, retrying.");
-                // I know this is impossible but anyway
 
-                cli.socket = cli.createSocket(connectUrl, timer, res);
+                cli.socket = cli.createSocket(connectUrl, timer as unknown as number, res, rej);
+            }, cli.settings.reconnectInterval ?? 4000);
 
-                timer.refresh();
-            }, cli.settings.reconnectInterval ?? 5500);
-
-            cli.socket = cli.createSocket(connectUrl, timer, res);
+            cli.socket = cli.createSocket(connectUrl, timer as unknown as number, res, rej);
         });
-    }
-
-    protected onSocketClose(evt: CloseEvent) {
-        this.invoke("debug", `Server closed connection due to code: ${evt.code}, reason: ${evt.reason}.`);
-
-        if (this.settings.reconnectable) {
-            if (this.api === undefined) return this.invoke("debug", "Not attempting to reconnect as this game client was created with a join token.");
-            // if (evt.reason === "Failed to preload the world.") {
-            //     return this.invoke("debug", "Not attempting to reconnect as the world don't exist.");
-            // }
-
-            if (this.prevWorldId) {
-                this.invoke("debug", "Attempting to reconnect.");
-
-                return this.joinWorld(this.prevWorldId).catch(err => {
-                    this.invoke("debug", err);
-                });
-            } else this.invoke("debug", "Warning: Socket closed, attempt to reconnect was made but no previous world id was kept.");
-        }
-    }
-
-    protected onSocketMessage(evt: MessageEvent) {
-        const { packet } = fromBinary(WorldPacketSchema, evt.data instanceof ArrayBuffer ? new Uint8Array(evt.data as ArrayBuffer) : evt.data);
-
-        this.invoke("debug", "Received " + packet.case);
-
-        if (packet.case === undefined) {  
-            return this.invoke("unknown", packet.value)
-        } else this.invoke("raw", packet);//this.callbacks.raw?.(packet);;
-
-        switch (packet.case) {
-            case "playerInitPacket":
-                if (this.settings.handlePackets.findIndex(v => v === "INIT") !== -1)
-                    this.send("playerInitReceived");
-
-                if (packet.value.playerProperties?.isWorldOwner) this.totalBucket.interval = 250;
-                else this.totalBucket.interval = 100;
-                break;
-            case "ping":
-                if (this.settings.handlePackets.findIndex(v => v === "PING") !== -1)
-                    this.send("ping", undefined, true);
-                break;
-        }
-
-        this.invoke(packet.case, packet.value);
     }
 
     // listen<Event extends keyof WorldEvents>(type: Event) {
