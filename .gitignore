@@ -4,3 +4,4 @@ browser
 dist
 input
 test
+lib/util/block.ts

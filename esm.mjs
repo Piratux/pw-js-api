@@ -5,11 +5,12 @@ if ("default" in PWGameClient) PWGameClient = PWGameClient.default;
 if ("default" in PWApiClient) PWApiClient = PWApiClient.default;
 
 const Constants = (await import("./dist/util/Constants.js")).default;
+const BlockNames = (await import("./dist/util/block.js")).BlockNames;
 
 export default {
-    PWGameClient, PWApiClient, Constants
+    PWGameClient, PWApiClient, Constants, BlockNames
 };
 
 export {
-    PWGameClient, PWApiClient, Constants
+    PWGameClient, PWApiClient, Constants, BlockNames
 };

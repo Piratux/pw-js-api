@@ -113,12 +113,7 @@ export default class PWApiClient {
      * Non-authenticated. This will refresh the room types each time, so make sure to check if roomTypes is available.
      */
     getRoomTypes() {
-        return this.request<string[]>(`${Endpoint.GameHTTP}/listroomtypes`)
-            .then(res => {
-                PWApiClient.roomTypes = res;
-
-                return res;
-            })
+        return PWApiClient.getRoomTypes();
     }
 
     /**
@@ -135,11 +130,22 @@ export default class PWApiClient {
 
     /**
      * Non-authenticated. Returns the mappings from the game API.
+     * 
+     * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.
      */
     getMappings() {
-        return this.request<Record<string, number>>(`${Endpoint.GameHTTP}/mappings`);
+        return PWApiClient.getMappings();
     }
 
+    /**
+     * Non-authenticated. Returns the mappings from the game API.
+     * 
+     * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.
+     */
+    static getMappings() {
+        return this.request<Record<string, number>>(`${Endpoint.GameHTTP}/mappings`);
+    }
+    
     /**
      * Returns the collection result of the query - your own worlds.
      * Default: page - 1, perPage - 10
@@ -167,6 +173,21 @@ export default class PWApiClient {
             page = 1;
         }
 
+        return PWApiClient.getPlayers(page, perPage, query);
+    }
+
+    /**
+     * Returns the collection result of the query - players.
+     * Default: page - 1, perPage - 10
+     */
+    static getPlayers(page: number, perPage: number, query?: ColQuery<ColPlayer>) : Promise<CollectionResult<ColPlayer>>;
+    static getPlayers(query: ColQuery<ColPlayer>) : Promise<CollectionResult<ColPlayer>>;
+    static getPlayers(page: number | ColQuery<ColPlayer> = 1, perPage: number = 10, query?: ColQuery<ColPlayer>) {
+        if (typeof page === "object") {
+            query = page;
+            page = 1;
+        }
+
         return this.request<CollectionResult<ColPlayer>>(`${Endpoint.Api}/api/collections/public_profiles/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
     }
 
@@ -182,6 +203,21 @@ export default class PWApiClient {
             page = 1;
         }
 
+        return PWApiClient.getPublicWorlds(page, perPage, query);
+    }
+
+    /**
+     * Returns the collection result of the query - public worlds.
+     * Default: page - 1, perPage - 10
+     */
+    static getPublicWorlds(page: number, perPage: number, query?: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
+    static getPublicWorlds(query: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
+    static getPublicWorlds(page: number | ColQuery<ColWorld> = 1, perPage: number = 10, query?: ColQuery<ColWorld>) {
+        if (typeof page === "object") {
+            query = page;
+            page = 1;
+        }
+
         return this.request<CollectionResult<ColWorld>>(`${Endpoint.Api}/api/collections/public_worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
     }
 
@@ -189,6 +225,13 @@ export default class PWApiClient {
      * Returns the lobby result.
      */
     getVisibleWorlds() {
+        return PWApiClient.getVisibleWorlds();
+    }
+
+    /**
+     * Returns the lobby result.
+     */
+    static getVisibleWorlds() {
         if (this.roomTypes.length === 0) throw Error("roomTypes is empty - use getRoomTypes first!");
 
         return this.request<LobbyResult>(`${Endpoint.GameHTTP}/room/list/${this.roomTypes[0]}`)
@@ -198,6 +241,13 @@ export default class PWApiClient {
      * Returns the world, if it exists and is public.
      */
     getPublicWorld(id: string) : Promise<ColWorld | undefined> {
+        return PWApiClient.getPublicWorld(id);
+    }
+
+    /**
+     * Returns the world, if it exists and is public.
+     */
+    static getPublicWorld(id: string) : Promise<ColWorld | undefined> {
         return this.getPublicWorlds(1, 1, { filter: { id } })
             .then(res => res.items[0]);
     }
@@ -213,6 +263,20 @@ export default class PWApiClient {
     getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false) {
         if (toURL) return `${Endpoint.Api}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
 
+        return PWApiClient.getMinimap(world, toURL);
+    }
+
+    /**
+     * Gets the raw minimap bytes, the format may differ depending on the environment (Bun, NodeJS, Browser etc).
+     */
+    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL?: false) : Promise<Buffer>
+    /**
+     * Gives the URL pointing to the minimap image.
+     */
+    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL: true) : string;
+    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false) {
+        if (toURL) return `${Endpoint.Api}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
+
         return this.request<ArrayBuffer|APIFailure>(this.getMinimap(world, true))
             .then(res => {
                 if ("message" in res) throw Error("Minimap doesn't exist, the world may be unlisted.");
@@ -225,6 +289,13 @@ export default class PWApiClient {
      * Note that username is cap sensitive, and may require you to use toUppercase
      */
     getPlayerByName(username: string) {
+        return PWApiClient.getPlayerByName(username);
+    }
+
+    /**
+     * Note that username is cap sensitive, and may require you to use toUppercase
+     */
+    static getPlayerByName(username: string) {
         return this.getPlayers(1, 1, { filter: { username } });
     }
 
