@@ -4,3 +4,4 @@ export { default as PWGameClient } from "./game/PWGameClient.js";
 export * as Constants from "./util/Constants.js";
 export * as Errors from "./util/Errors.js";
 export { BlockNames } from "./util/block.js";
+export * as ProtoGen from "./gen/world_pb.js";
