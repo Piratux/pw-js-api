@@ -1,5 +1,8 @@
 /** @module Types/Game */
 
+import type { WorldPacket } from "../gen/world_pb";
+import type { WorldEvents } from "./events";
+
 export interface GameClientSettings {
     /**
      * If the client should try to reconnect when it disconnects.
@@ -48,3 +51,8 @@ export interface WorldJoinData {
     world_width?: number;
     world_height?: number;
 }
+
+// Despite State not being used, this is important for the typings anyway.
+export type Hook<State extends Pick<Partial<{
+[K in keyof WorldEvents]: any;
+}>, keyof WorldEvents>> = (packet: WorldPacket) => void;

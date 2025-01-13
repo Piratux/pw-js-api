@@ -1,6 +1,6 @@
 import type PWApiClient from "../api/PWApiClient.js";
 import { type Ping, type PlayerChatPacket, type WorldBlockFilledPacket, type WorldBlockPlacedPacket, WorldPacket, WorldPacketSchema } from "../gen/world_pb.js";
-import type { GameClientSettings, WorldJoinData } from "../types/game.js"
+import type { GameClientSettings, WorldJoinData, Hook } from "../types/game.js"
 import { Endpoint } from "../util/Constants.js";
 import { AuthError } from "../util/Errors.js";
 
@@ -121,6 +121,29 @@ export default class PWGameClient
                 return this.invoke("unknown", packet.value)
             } //this.callbacks.raw?.(packet);;
 
+            let states = {} as Record<string, any>;// | undefined;
+
+            if (this.hooks.length) {
+                try {
+                    states = {};
+
+                    for (let i = 0, len = this.hooks.length; i < len; i++) {
+                        const res = this.hooks[i](packet);
+
+                        const entries = Object.entries(res);
+                        for (let j = 0, jen = entries.length; j < jen; j++) {
+                            states[entries[j][0]] = entries[j][1];
+                        }
+                    }
+                } catch (err) {
+                    this.invoke("debug", "Unable to execute all hooks safely");
+                    // TODO: separate event for error
+                    console.error(err);
+
+                    states = {};
+                }
+            }
+
             switch (packet.case) {
                 case "playerInitPacket":
                     if (this.settings.handlePackets.findIndex(v => v === "INIT") !== -1)
@@ -135,7 +158,7 @@ export default class PWGameClient
 
                         // Give the client the init again as they might could have missed it even by a few milliseconds.
                         return setTimeout(() => {
-                            this.invoke(packet.case, packet.value);
+                            this.invoke(packet.case, packet.value, states as any);
                         }, 1500);
                     }
                     break;
@@ -145,7 +168,7 @@ export default class PWGameClient
                     break;
             }
 
-            this.invoke(packet.case, packet.value);
+            this.invoke(packet.case, packet.value, states as any);
         }
 
         socket.onopen = (evt) => {
@@ -224,7 +247,7 @@ export default class PWGameClient
      */
     protected callbacks = {
 
-    } as Partial<{ [K in keyof MergedEvents]: Array<(data: MergedEvents[K], states: SafeCheck<K, StateT>) => Promisable<void | "STOP">> }>;
+    } as Partial<{ [K in keyof MergedEvents]: Array<(data: MergedEvents[K], states?: SafeCheck<K, StateT>) => Promisable<void | "STOP">> }>;
 
     // private hooks = {
 
@@ -240,10 +263,9 @@ export default class PWGameClient
      * and may pass it to callbacks (via the second parameter in callbacks). If an error occurs while executing one of the hooks,
      * the execution of hooks will halt for that packet and callbacks will run without the states.
      * 
-     * NOTE: This is permanent, if a hook is added, it won't 
+     * NOTE: This is permanent, if a hook is added, it can't be removed.
      */
-
-    addHook<State extends Pick<Partial<{ [K in keyof WorldEvents]: any }>, keyof WorldEvents>>(hook: (packet: WorldPacket) => any) : PWGameClient<StateT & State> {
+    addHook<HookState extends Pick<Partial<{ [K in keyof WorldEvents]: any }>, keyof WorldEvents>>(hook: Hook<HookState>) : PWGameClient<StateT & HookState> {
         // if (this.callbacks["raw"] === undefined) this.callbacks["raw"] = [];
 
         // this.hooks.oldChatMessagesPacket
@@ -252,7 +274,7 @@ export default class PWGameClient
 
         // this.callbacks["raw"].unshift(hook);
 
-        return this as unknown as PWGameClient<StateT & State>;
+        return this as unknown as PWGameClient<StateT & HookState>;
     }
 
     /**
@@ -262,8 +284,8 @@ export default class PWGameClient
      */
     
     addCallback<Event extends keyof CustomBotEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event]) => Promisable<void | "STOP">>) : this
-    addCallback<Event extends keyof WorldEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this
-    addCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this {
+    addCallback<Event extends keyof WorldEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states?: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this
+    addCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states?: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this {
         // this.callbacks[type] = cb;
 
         if (this.callbacks[type] === undefined) this.callbacks[type] = [];
@@ -282,8 +304,8 @@ export default class PWGameClient
      */
     
     prependCallback<Event extends keyof CustomBotEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event]) => Promisable<void | "STOP">>) : this
-    prependCallback<Event extends keyof WorldEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this
-    prependCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this {
+    prependCallback<Event extends keyof WorldEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states?: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this
+    prependCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states?: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this {
         // this.callbacks[type] = cb;
 
         if (this.callbacks[type] === undefined) this.callbacks[type] = [];
@@ -317,18 +339,19 @@ export default class PWGameClient
     /**
      * INTERNAL. Invokes all functions of a callback type, unless one of them prohibits in transit.
      */
-    protected async invoke<Event extends keyof MergedEvents>(type: Event, data: MergedEvents[Event]) : Promise<{ count: number, stopped: boolean, variables: any }> {
+    protected async invoke<Event extends keyof CustomBotEvents>(type: Event, data: MergedEvents[Event]) : Promise<{ count: number, stopped: boolean }>
+    protected async invoke<Event extends keyof WorldEvents>(type: Event, data: MergedEvents[Event], states: SafeCheck<Event, StateT>) : Promise<{ count: number, stopped: boolean }>
+    protected async invoke<Event extends keyof MergedEvents>(type: Event, data: MergedEvents[Event], states?: SafeCheck<Event, StateT>) : Promise<{ count: number, stopped: boolean }> {
         const cbs = this.callbacks[type];
         
         let result = {
-            count: 0, stopped: false,
-            variables: {} as any
+            count: 0, stopped: false
         };
 
         if (cbs === undefined) return result;
 
         for (let i = 0, len = cbs.length; i < len; i++) {
-            const res = await cbs[i](data, result.variables);
+            const res = await cbs[i](data, states);
 
             result.count++;
 
@@ -336,7 +359,6 @@ export default class PWGameClient
                 const keys = Object.keys(res);
 
                 for (let j = 0, jen = keys.length; j < jen; j++) {
-                    result.variables[keys[j]] = res[keys[j]];
                     data[keys[j]] = res[keys[j]];
                 }
             }
