@@ -128,11 +128,13 @@ export default class PWGameClient
                     states = {};
 
                     for (let i = 0, len = this.hooks.length; i < len; i++) {
-                        const res = this.hooks[i](packet);
+                        const res = this.hooks[i](rawPacket);
 
-                        const entries = Object.entries(res);
-                        for (let j = 0, jen = entries.length; j < jen; j++) {
-                            states[entries[j][0]] = entries[j][1];
+                        if (typeof res === "object") {
+                            const entries = Object.entries(res);
+                            for (let j = 0, jen = entries.length; j < jen; j++) {
+                                states[entries[j][0]] = entries[j][1];
+                            }
                         }
                     }
                 } catch (err) {
@@ -158,6 +160,28 @@ export default class PWGameClient
 
                         // Give the client the init again as they might could have missed it even by a few milliseconds.
                         return setTimeout(() => {
+                            // TODO: deduplicate this part.
+                            if (this.hooks.length) {
+                                try {
+                                    states = {};
+                
+                                    for (let i = 0, len = this.hooks.length; i < len; i++) {
+                                        const res = this.hooks[i](packet);
+                
+                                        const entries = Object.entries(res);
+                                        for (let j = 0, jen = entries.length; j < jen; j++) {
+                                            states[entries[j][0]] = entries[j][1];
+                                        }
+                                    }
+                                } catch (err) {
+                                    this.invoke("debug", "Unable to execute all hooks safely");
+                                    // TODO: separate event for error
+                                    console.error(err);
+                
+                                    states = {};
+                                }
+                            }
+
                             this.invoke(packet.case, packet.value, states as any);
                         }, 1500);
                     }
