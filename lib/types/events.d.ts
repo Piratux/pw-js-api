@@ -9,7 +9,7 @@ export type CustomBotEvents = {
     /**
      * CUSTOM: this will include ALL packets, including some that are not pregenerated.
      */
-    raw: ({ case: string, value?: unknown });
+    raw: WorldPacket;
     /**
      * CUSTOM: events whose types are unknown.
      */

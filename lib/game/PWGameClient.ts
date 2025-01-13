@@ -1,16 +1,21 @@
 import type PWApiClient from "../api/PWApiClient.js";
-import { type Ping, type PlayerChatPacket, type WorldBlockFilledPacket, type WorldBlockPlacedPacket, WorldPacketSchema } from "../gen/world_pb.js";
+import { type Ping, type PlayerChatPacket, type WorldBlockFilledPacket, type WorldBlockPlacedPacket, WorldPacket, WorldPacketSchema } from "../gen/world_pb.js";
 import type { GameClientSettings, WorldJoinData } from "../types/game.js"
 import { Endpoint } from "../util/Constants.js";
 import { AuthError } from "../util/Errors.js";
 
 import { WebSocket } from "isows";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
-import type { MergedEvents, WorldEvents } from "../types/events.js";
+import type { CustomBotEvents, MergedEvents, WorldEvents } from "../types/events.js";
 import Bucket from "../util/Bucket.js";
 import type { OmitRecursively, Optional, Promisable } from "../types/misc.js";
 
-export default class PWGameClient {
+type SafeCheck<K extends keyof MergedEvents, State extends Partial<{ [K in keyof MergedEvents]: any }>> = State extends CustomBotEvents ? never : State[K];
+
+export default class PWGameClient
+        <
+        StateT extends Partial<{ [K in keyof WorldEvents]: never }> = {}
+        > {
     settings: GameClientSettings;
 
     api?: PWApiClient;
@@ -57,7 +62,7 @@ export default class PWGameClient {
      * 
      * (This returns itself for chaining)
      */
-    async joinWorld(roomId: string, joinData?: WorldJoinData) : Promise<PWGameClient> {
+    async joinWorld(roomId: string, joinData?: WorldJoinData) : Promise<this> {
         if (!this.api) throw Error("This can only work if you've used APIClient to join the world in the first place.");
 
         if (this.socket?.readyState === WebSocket.CONNECTING) throw Error("Already trying to connect.");
@@ -97,7 +102,7 @@ export default class PWGameClient {
     /**
      * INTERNAL
      */
-    private createSocket(url: string, timer: number, res: (value: PWGameClient) => void, rej: (reason: any) => void) {
+    private createSocket(url: string, timer: number, res: (value: this) => void, rej: (reason: any) => void) {
         const socket = new WebSocket(url);
         socket.binaryType = "arraybuffer";
 
@@ -105,13 +110,16 @@ export default class PWGameClient {
         let init = false;
 
         socket.onmessage = (evt) => {
-            const { packet } = fromBinary(WorldPacketSchema, evt.data instanceof ArrayBuffer ? new Uint8Array(evt.data as ArrayBuffer) : evt.data);
+            const rawPacket = fromBinary(WorldPacketSchema, evt.data instanceof ArrayBuffer ? new Uint8Array(evt.data as ArrayBuffer) : evt.data);
+            const { packet } = rawPacket;
 
             this.invoke("debug", "Received " + packet.case);
 
+            this.invoke("raw", rawPacket);
+
             if (packet.case === undefined) {  
                 return this.invoke("unknown", packet.value)
-            } else this.invoke("raw", packet);//this.callbacks.raw?.(packet);;
+            } //this.callbacks.raw?.(packet);;
 
             switch (packet.case) {
                 case "playerInitPacket":
@@ -216,14 +224,46 @@ export default class PWGameClient {
      */
     protected callbacks = {
 
-    } as Partial<{ [K in keyof MergedEvents]: Array<(data: MergedEvents[K]) => Promisable<void | "STOP">> }>;
+    } as Partial<{ [K in keyof MergedEvents]: Array<(data: MergedEvents[K], states: SafeCheck<K, StateT>) => Promisable<void | "STOP">> }>;
+
+    // private hooks = {
+
+    // } as Partial<{ [K in keyof P]: Array<(statey: P[K]) => Promisable<K>> }>
+
+    /**
+     * Poorly documented because I cba
+     */
+    private hooks:Array<(...args: any[]) => any> = [];
+
+    /**
+     * This is different to addCallback as all hooks (regardless of the type) will execute first before the callbacks, each hook may modify something or do something in the background
+     * and may pass it to callbacks (via the second parameter in callbacks). If an error occurs while executing one of the hooks,
+     * the execution of hooks will halt for that packet and callbacks will run without the states.
+     * 
+     * NOTE: This is permanent, if a hook is added, it won't 
+     */
+
+    addHook<State extends Pick<Partial<{ [K in keyof WorldEvents]: any }>, keyof WorldEvents>>(hook: (packet: WorldPacket) => any) : PWGameClient<StateT & State> {
+        // if (this.callbacks["raw"] === undefined) this.callbacks["raw"] = [];
+
+        // this.hooks.oldChatMessagesPacket
+
+        this.hooks.push(hook);
+
+        // this.callbacks["raw"].unshift(hook);
+
+        return this as unknown as PWGameClient<StateT & State>;
+    }
 
     /**
      * Adds a listener for the event type, it can even be a promise too.
      * 
      * If the callback returns a specific string "STOP", it will prevent further listeners from being invoked.
      */
-    addCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event]) => Promisable<void | "STOP">>) : PWGameClient {
+    
+    addCallback<Event extends keyof CustomBotEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event]) => Promisable<void | "STOP">>) : this
+    addCallback<Event extends keyof WorldEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this
+    addCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this {
         // this.callbacks[type] = cb;
 
         if (this.callbacks[type] === undefined) this.callbacks[type] = [];
@@ -236,10 +276,30 @@ export default class PWGameClient {
     }
 
     /**
+     * Adds a listener for the event type, it can even be a promise too.
+     * 
+     * If the callback returns a specific string "STOP", it will prevent further listeners from being invoked.
+     */
+    
+    prependCallback<Event extends keyof CustomBotEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event]) => Promisable<void | "STOP">>) : this
+    prependCallback<Event extends keyof WorldEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this
+    prependCallback<Event extends keyof MergedEvents>(type: Event, ...cbs: Array<(data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">>) : this {
+        // this.callbacks[type] = cb;
+
+        if (this.callbacks[type] === undefined) this.callbacks[type] = [];
+
+        if (cbs.length === 0) return this;
+
+        this.callbacks[type].unshift(...cbs);
+
+        return this;
+    }
+
+    /**
      * @param type The type of the event
      * @param cb It can be the function itself (to remove that specific function). If undefined, it will remove ALL functions from that list, it will return undefined.
      */
-    removeCallback<Event extends keyof MergedEvents>(type: Event, cb?: (data: MergedEvents[Event]) => Promisable<void | "STOP">) : undefined | ((data: MergedEvents[Event]) => Promisable<void | "STOP">) {
+    removeCallback<Event extends keyof MergedEvents>(type: Event, cb?: (data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">) : undefined | ((data: MergedEvents[Event], states: SafeCheck<Event, StateT>) => Promisable<void | "STOP">) {
         const callbacks = this.callbacks[type];
 
         if (callbacks === undefined || cb === undefined) { callbacks?.splice(0); return; }
@@ -257,22 +317,38 @@ export default class PWGameClient {
     /**
      * INTERNAL. Invokes all functions of a callback type, unless one of them prohibits in transit.
      */
-    protected async invoke<Event extends keyof MergedEvents>(type: Event, data: MergedEvents[Event]) : Promise<number> {
+    protected async invoke<Event extends keyof MergedEvents>(type: Event, data: MergedEvents[Event]) : Promise<{ count: number, stopped: boolean, variables: any }> {
         const cbs = this.callbacks[type];
         
-        let count = 0;
+        let result = {
+            count: 0, stopped: false,
+            variables: {} as any
+        };
 
-        if (cbs === undefined) return count;
+        if (cbs === undefined) return result;
 
         for (let i = 0, len = cbs.length; i < len; i++) {
-            const res = await cbs[i](data);
+            const res = await cbs[i](data, result.variables);
 
-            count++;
+            result.count++;
 
-            if (res === "STOP") return count; 
+            if (typeof res === "object") {
+                const keys = Object.keys(res);
+
+                for (let j = 0, jen = keys.length; j < jen; j++) {
+                    result.variables[keys[j]] = res[keys[j]];
+                    data[keys[j]] = res[keys[j]];
+                }
+            }
+
+            if (res === "STOP") {
+                result.stopped = true;
+
+                return result;
+            }
         }
 
-        return count;
+        return result;
     }
 
     /**
