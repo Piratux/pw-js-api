@@ -166,11 +166,13 @@ export default class PWGameClient
                                     states = {};
                 
                                     for (let i = 0, len = this.hooks.length; i < len; i++) {
-                                        const res = this.hooks[i](packet);
+                                        const res = this.hooks[i](rawPacket);
                 
-                                        const entries = Object.entries(res);
-                                        for (let j = 0, jen = entries.length; j < jen; j++) {
-                                            states[entries[j][0]] = entries[j][1];
+                                        if (typeof res === "object") {
+                                            const entries = Object.entries(res);
+                                            for (let j = 0, jen = entries.length; j < jen; j++) {
+                                                states[entries[j][0]] = entries[j][1];
+                                            }
                                         }
                                     }
                                 } catch (err) {

@@ -25,3 +25,7 @@ jobs:
         run: pnpm publish --provenance --no-git-checks --tag latest --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Deprecate Old Versions
+        run: npx -y npm-deprecate
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
