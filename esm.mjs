@@ -8,6 +8,9 @@ const Constants = (await import("./dist/util/Constants.js")).default;
 const BlockNames = (await import("./dist/util/block.js")).BlockNames;
 const ProtoGen = (await import("./dist/gen/world_pb.js")).default;
 
+console.log("BlockNames: ", BlockNames)
+console.log("BlockNames default: ", (await import("./dist/util/block.js")).default)
+
 
 export default {
     PWGameClient, PWApiClient, Constants, BlockNames, ProtoGen
