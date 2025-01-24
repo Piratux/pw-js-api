@@ -5,9 +5,9 @@ if ("default" in PWGameClient) PWGameClient = PWGameClient.default;
 if ("default" in PWApiClient) PWApiClient = PWApiClient.default;
 
 const Constants = (await import("./dist/util/Constants.js")).default;
-const BlockNames = (await import("./dist/util/block.js")).BlockNames;
 const ProtoGen = (await import("./dist/gen/world_pb.js")).default;
 
+import { BlockNames } from "./dist/util/block.js";
 
 export default {
     PWGameClient, PWApiClient, Constants, BlockNames, ProtoGen
