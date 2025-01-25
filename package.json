@@ -1,6 +1,7 @@
 {
   "name": "pw-js-api",
   "version": "0.2.1",
+  "type": "module",
   "description": "A PixelWalker Library, aims to be minimal with support for browsers.",
   "scripts": {
     "test": "bun test/index.ts",
@@ -13,12 +14,8 @@
     "browsify-dev": "cross-env NODE_ENV=development webpack --mode=development",
     "prepare": "run-s build:* build browsify"
   },
-  "exports": {
-    "bun": "./dist/index.js",
-    "import": "./esm.mjs",
-    "require": "./dist/index.js",
-    "types": "./dist/index.d.ts"
-  },
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "keywords": [
     "PixelWalker", "Core"
   ],
