@@ -4,20 +4,20 @@
   "description": "A PixelWalker Library, aims to be minimal with support for browsers.",
   "scripts": {
     "test": "bun test/index.ts",
-    "build": "rimraf dist && tsc -p tsconfig.json && ncp lib/types dist/types",
+    "build": "rimraf esm cm && tsc -p tsconfig-cm.json & tsc -p tsconfig-esm.json && ncp lib/types esm/types",
     "build:proto": "node scripts/build-proto.mjs && buf generate",
     "build:mappings": "node scripts/build-mappings.mjs",
 
     "browsify": "rimraf browser && npm-run-all -p browsify-*",
     "browsify-prod": "cross-env NODE_ENV=production webpack --mode=production",
     "browsify-dev": "cross-env NODE_ENV=development webpack --mode=development",
-    "prepare": "run-s build:* build browsify"
+
+    "prepare": "run-p build:* && run-s build browsify"
   },
   "exports": {
-    "bun": "./dist/index.js",
-    "import": "./esm.mjs",
-    "require": "./dist/index.js",
-    "types": "./dist/index.d.ts"
+    "types": "./esm/index.js",
+    "import": "./esm/index.js",
+    "require": "./cm/index.js"
   },
   "keywords": [
     "PixelWalker", "Core"
