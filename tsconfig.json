@@ -23,7 +23,7 @@
     "esModuleInterop": true,
     "skipLibCheck": false,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "ignoreDeprecations": "5.0",
