@@ -4,3 +4,5 @@ tsconfig.json
 .github/
 webpack.config.cjs
 pnpm-lock.yaml
+.npm-deprecaterc.json
+buf.gen.yaml

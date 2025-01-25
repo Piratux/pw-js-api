@@ -1,10 +1,7 @@
-const webpack = require("webpack");
-
-
 console.log("Node ENV:", process.env.NODE_ENV);
 
 module.exports = {
-    entry: "./dist/index.js",
+    entry: "./esm/index.js",
     output: {
         path: __dirname + "/browser/",
         filename: 'pw.' + (process.env.NODE_ENV === "production" ? "prod" : "dev") +  '.js',

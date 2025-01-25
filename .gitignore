@@ -5,3 +5,6 @@ dist
 input
 test
 lib/util/block.ts
+esm
+cm
+lib/gen/world_pb.ts

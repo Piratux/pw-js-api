@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "outDir": "dist",
     "lib": [
       "DOM",
       "ES2015",
@@ -12,6 +11,7 @@
       "ES2021",
       "ES2022"
     ],
+    /** Left these module/moduleresolution in so visual studio will stop crying */
     "module": "CommonJS",
     "target": "ES6",
     "inlineSourceMap": true,
@@ -36,5 +36,5 @@
     "resolveJsonModule": true
   },
   "include": ["lib/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test"]
+  "exclude": ["node_modules", "cm", "esm", "test"]
 }
