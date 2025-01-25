@@ -6,3 +6,5 @@ webpack.config.cjs
 pnpm-lock.yaml
 .npm-deprecaterc.json
 buf.gen.yaml
+input/
+examples/
