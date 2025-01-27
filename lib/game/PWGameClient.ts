@@ -9,6 +9,7 @@ import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { CustomBotEvents, MergedEvents, WorldEvents } from "../types/events.js";
 import Bucket from "../util/Bucket.js";
 import type { OmitRecursively, Optional, Promisable } from "../types/misc.js";
+import { isCustomPacket } from "../util/Misc.js";
 
 type SafeCheck<K extends keyof MergedEvents, State extends Partial<{ [K in keyof MergedEvents]: any }>> = State extends CustomBotEvents ? never : State[K];
 
@@ -377,7 +378,7 @@ export default class PWGameClient
         if (cbs === undefined) return result;
 
         for (let i = 0, len = cbs.length; i < len; i++) {
-            const res = await cbs[i](data, states);
+            const res = await (isCustomPacket(type) ? cbs[i](data) : cbs[i](data, states));
 
             result.count++;
 

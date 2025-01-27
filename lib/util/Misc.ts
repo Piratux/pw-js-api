@@ -1,4 +1,5 @@
 import type { ColItem, ColQuery } from "../types/api.js";
+import type { CustomBotEvents, MergedEvents } from "../types/events.js";
 
 export function queryToString<T extends ColItem>(query: ColQuery<T> | undefined) {
     if (typeof query === "undefined") return "";
@@ -52,3 +53,7 @@ export function queryToString<T extends ColItem>(query: ColQuery<T> | undefined)
 // console.log(queryToString<ColWorld>({ filter: "a~b,ok=lol" }));
 
 // console.log(queryToString<ColWorld>({ sort: ["collectionId", ["id", "ASC"], "collectionName", ["created", "DESC"], ["description"]] }));
+
+export function isCustomPacket(type: keyof MergedEvents) : type is keyof CustomBotEvents {
+    return type === "debug" || type === "unknown" || type === "raw";
+}
