@@ -292,7 +292,7 @@ export default class PWApiClient {
     /**
      * Gets the raw minimap bytes, the format may differ depending on the environment (Bun, NodeJS, Browser etc).
      */
-    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL?: false) : Promise<Buffer>
+    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL?: false) : Promise<ArrayBuffer>
     /**
      * Gives the URL pointing to the minimap image.
      */
