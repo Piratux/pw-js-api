@@ -135,3 +135,34 @@ export interface LobbyResult {
     onlinePlayerCount: number;
     visibleRooms: LobbyResultWorld[];
 }
+
+export interface ListBlockResult {
+    /**
+     * Numeric
+     */
+    id: number;
+    /**
+     * 0 for Background, 1 for Foreground.
+     */
+    layer: number;
+    /**
+     * What the block ID was before the current update.
+     */
+    legacyId: number;
+    /**
+     * Unsigned 32 bit integer.
+     * 
+     * (If you need the hex string: use .toString(16) with 16 as the radix and trim off the leading FF. To convert it back to number, use parseInt(hexstring, 16))
+     */
+    minimapColor?: number;
+    /**
+     * Useful for mapping, allows you to identify the block in case the numeric ID changes.
+     * 
+     * NOTE: There may still be an occasion where the block's name is changed, for eg due to a typo.
+     */
+    name: string;
+    /**
+     * Unclear what this is.
+     */
+    legacyMorph?: number[];
+}

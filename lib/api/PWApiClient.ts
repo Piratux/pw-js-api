@@ -1,5 +1,5 @@
 import PWGameClient from "../game/PWGameClient.js";
-import type { APIFailure, AuthResultSuccess, CollectionResult, ColPlayer, ColQuery, ColWorld, JoinKeyResult, LobbyResult } from "../types/api.js";
+import type { APIFailure, AuthResultSuccess, CollectionResult, ColPlayer, ColQuery, ColWorld, JoinKeyResult, ListBlockResult, LobbyResult } from "../types/api.js";
 import type { GameClientSettings, WorldJoinData } from "../types/game.js";
 import { Endpoint } from "../util/Constants.js";
 import { queryToString } from "../util/Misc.js";
@@ -132,6 +132,8 @@ export default class PWApiClient {
      * Non-authenticated. Returns the mappings from the game API.
      * 
      * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.
+     * 
+     * @deprecated Use getListBlocks()
      */
     getMappings() {
         return PWApiClient.getMappings();
@@ -141,9 +143,30 @@ export default class PWApiClient {
      * Non-authenticated. Returns the mappings from the game API.
      * 
      * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.
+     * 
+     * @deprecated Use getListBlocks()
      */
     static getMappings() {
         return this.request<Record<string, number>>(`${Endpoint.GameHTTP}/mappings`);
+    }
+
+    /**
+     * Non-authenticated. Returns the mappings from the game API.
+     * 
+     * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.     * 
+     */
+    getListBlocks() {
+        return PWApiClient.getListBlocks();
+    }
+
+    /**
+     * Non-authenticated. Returns the mappings from the game API.
+     * 
+     * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.
+     */
+    static getListBlocks() {
+        return this.request<Uint8Array>(`${Endpoint.GameHTTP}/listblocks`)
+            .then(res => JSON.parse((Buffer.from(res).toString())) as ListBlockResult[]);
     }
     
     /**
