@@ -11,7 +11,7 @@ const mappings = await fetch("https://game.pixelwalker.net/listblocks")
 let tsOutput = "export enum BlockNames {\n";
 
 for (let i = 0, len = mappings.length; i < len; i++) {
-    tsOutput += "   " + mappings[i].name.toUpperCase() + " = " + mappings[i].id + ",\n"
+    tsOutput += "   " + mappings[i].PaletteId.toUpperCase() + " = " + mappings[i].Id + ",\n"
 }
 
 tsOutput += `};

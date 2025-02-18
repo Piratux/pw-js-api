@@ -140,29 +140,31 @@ export interface ListBlockResult {
     /**
      * Numeric
      */
-    id: number;
+    Id: number;
     /**
      * 0 for Background, 1 for Foreground.
      */
-    layer: number;
+    Layer: number;
     /**
      * What the block ID was before the current update.
      */
-    legacyId: number;
+    LegacyId: number;
     /**
      * Unsigned 32 bit integer.
      * 
      * (If you need the hex string: use .toString(16) with 16 as the radix and trim off the leading FF. To convert it back to number, use parseInt(hexstring, 16))
      */
-    minimapColor?: number;
+    MinimapColor?: number;
     /**
      * Useful for mapping, allows you to identify the block in case the numeric ID changes.
      * 
+     * This is what they refer to as block name for some reason.
+     * 
      * NOTE: There may still be an occasion where the block's name is changed, for eg due to a typo.
      */
-    name: string;
+    PaletteId: string;
     /**
      * Unclear what this is.
      */
-    legacyMorph?: number[];
+    LegacyMorph?: number[];
 }
