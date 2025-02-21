@@ -152,8 +152,14 @@ export default class PWGameClient
                     if (this.settings.handlePackets.findIndex(v => v === "INIT") !== -1)
                         this.send("playerInitReceived");
 
-                    if (packet.value.playerProperties?.isWorldOwner) this.totalBucket.tokenLimit = 250;
-                    else this.totalBucket.tokenLimit = 100;
+                    if (packet.value.playerProperties?.isWorldOwner) {
+                        this.totalBucket.tokenLimit = 400;
+                        this.chatBucket.tokenLimit = 15;
+                    }
+                    else {
+                        this.totalBucket.tokenLimit = 250;
+                        this.chatBucket.tokenLimit = 5;
+                    }
 
                     if (!init) {
                         clearInterval(timer);
