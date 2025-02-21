@@ -25,7 +25,7 @@ export default class Queue {
     }
 
     private check() : void {
-        if (this.timeout !== null || this.queue.length === 0) return;
+        if (this.timeout !== null || this._queue.length === 0) return;
 
         if (this.lastReset + this.interval < Date.now()) {
             this.lastReset = Date.now();
