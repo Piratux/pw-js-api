@@ -7,7 +7,7 @@ import { AuthError } from "../util/Errors.js";
 import { WebSocket } from "isows";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { CustomBotEvents, MergedEvents, WorldEvents } from "../types/events.js";
-import Bucket from "../util/Bucket.js";
+import Queue from "../util/Queue.js";
 import type { OmitRecursively, Optional, Promisable } from "../types/misc.js";
 import { isCustomPacket } from "../util/Misc.js";
 
@@ -24,8 +24,8 @@ export default class PWGameClient
 
     private prevWorldId?: string;
 
-    protected totalBucket = new Bucket(100, 1000);
-    protected chatBucket = new Bucket(10, 1000);
+    protected totalBucket = new Queue(100, 1000);
+    protected chatBucket = new Queue(10, 1000);
 
     protected connectAttempts = {
         time: -1,
@@ -417,7 +417,8 @@ export default class PWGameClient
         if (direct) return send();
 
         this.totalBucket.queue(() => {
-            if (type !== "playerChatPacket") send() 
+            if (type !== "playerChatPacket") send()
+                // yeah this is not good, need to rewrite the queueing bit for now.
             else this.chatBucket.queue(() => { send() });
         }, type === "playerChatPacket")
     }
