@@ -422,11 +422,8 @@ export default class PWGameClient
 
         if (direct) return send();
 
-        this.totalBucket.queue(() => {
-            if (type !== "playerChatPacket") send()
-                // yeah this is not good, need to rewrite the queueing bit for now.
-            else this.chatBucket.queue(() => { send() });
-        }, type === "playerChatPacket")
+        if (type === "playerChatPacket") this.chatBucket.queue(() => { send(); })
+        else this.totalBucket.queue(() => { send(); })
     }
 
     /**
