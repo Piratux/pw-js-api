@@ -166,7 +166,7 @@ export default class PWApiClient {
      */
     static getListBlocks() {
         return this.request<Uint8Array>(`${Endpoint.GameHTTP}/listblocks`)
-            .then(res => JSON.parse((Buffer.from(res).toString())) as ListBlockResult[]);
+            .then(res => res as unknown as ListBlockResult[]);
     }
     
     /**
