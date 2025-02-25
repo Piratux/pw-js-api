@@ -24,6 +24,15 @@ export default class PWApiClient {
     loggedIn = false;
 
     /**
+     * This will be undefined if getListBlocks() hasn't been run once.
+     */
+    static listBlocks: ListBlockResult[] | undefined;
+    /**
+     * This will be undefined if getListBlocks() hasn't been run once.
+     */
+    static listBlocksObj: Record<string, ListBlockResult> | undefined;
+
+    /**
      * This will create an instance of the class, as you're using the token, it will automatically be marked as loggedIn.
      * @param token Must be a valid account token.
      */
@@ -124,7 +133,10 @@ export default class PWApiClient {
             .then(res => {
                 PWApiClient.roomTypes = res;
 
-                return res;
+                return this.getListBlocks(true);
+            })
+            .then(() => {
+                return PWApiClient.roomTypes;
             })
     }
 
@@ -153,20 +165,56 @@ export default class PWApiClient {
     /**
      * Non-authenticated. Returns the mappings from the game API.
      * 
+     * This will fetch for the first time if it hasn't been used, hence asynchronous. You can use listBlocks property if it exists and if you wish to avoid potentially using async.
+     * After that, it will return a list or object if specified.
+     * 
+     * This is automatically invoked when getRoomTypes() is invoked to clear cache.
+     * 
      * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.     * 
      */
-    getListBlocks() {
-        return PWApiClient.getListBlocks();
+
+    getListBlocks(skipCache: boolean | undefined, toObject: true) : Promise<Record<string, ListBlockResult>>;
+    getListBlocks(skipCache?: boolean, toObject?: false) : Promise<ListBlockResult[]>;
+    getListBlocks(skipCache = false, toObject?: boolean) {
+        // Yes, this actually gets typescript compiler to stop moaning
+        if (toObject) return PWApiClient.getListBlocks(skipCache, toObject);
+
+        return PWApiClient.getListBlocks(skipCache, toObject);
     }
 
     /**
      * Non-authenticated. Returns the mappings from the game API.
      * 
+     * This will fetch for the first time if it hasn't been used, hence asynchronous. You can use listBlocks property if it exists and if you wish to avoid potentially using async.
+     * After that, it will return a list or object if specified.
+     * 
+     * This is automatically invoked when getRoomTypes() is invoked to clear cache.
+     * 
      * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.
      */
-    static getListBlocks() {
-        return this.request<Uint8Array>(`${Endpoint.GameHTTP}/listblocks`)
-            .then(res => res as unknown as ListBlockResult[]);
+    static async getListBlocks(skipCache: boolean | undefined, toObject: true) : Promise<Record<string, ListBlockResult>>;
+    static async getListBlocks(skipCache?: boolean, toObject?: false) : Promise<ListBlockResult[]>;
+    static async getListBlocks(skipCache = false, toObject?: boolean) {
+        if (!skipCache) {
+            if (this.listBlocks !== undefined && !toObject) return this.listBlocks;
+            if (this.listBlocksObj !== undefined && toObject) return this.listBlocksObj;
+        }
+
+        return this.request<ListBlockResult[]>(`${Endpoint.GameHTTP}/listblocks`)
+            .then(res => {
+                this.listBlocks = res;
+
+                const obj = {} as Record<string, ListBlockResult>;
+
+                for (let i = 0, len = res.length; i < len; i++) {
+                    obj[res[i].PaletteId] = res[i];
+                }
+
+                this.listBlocksObj = obj;
+
+                if (toObject) return obj;
+                else return res;
+            })
     }
     
     /**
