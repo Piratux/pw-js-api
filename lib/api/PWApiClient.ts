@@ -25,6 +25,8 @@ export default class PWApiClient {
 
     /**
      * This will be undefined if getListBlocks() hasn't been run once.
+     * 
+     * (This is sorted by ID)
      */
     static listBlocks: ListBlockResult[] | undefined;
     /**
@@ -183,7 +185,7 @@ export default class PWApiClient {
     }
 
     /**
-     * Non-authenticated. Returns the mappings from the game API.
+     * Non-authenticated. Returns the list blocks from the game API.
      * 
      * This will fetch for the first time if it hasn't been used, hence asynchronous. You can use listBlocks property if it exists and if you wish to avoid potentially using async.
      * After that, it will return a list or object if specified.
@@ -202,18 +204,19 @@ export default class PWApiClient {
 
         return this.request<ListBlockResult[]>(`${Endpoint.GameHTTP}/listblocks`)
             .then(res => {
-                this.listBlocks = res;
-
                 const obj = {} as Record<string, ListBlockResult>;
+                const arr = [] as Array<ListBlockResult>; // PW doesn't sort the returned endpoint data despite data structure means it's perfectly capable
 
                 for (let i = 0, len = res.length; i < len; i++) {
                     obj[res[i].PaletteId] = res[i];
+                    arr[res[i].Id] = res[i];
                 }
 
                 this.listBlocksObj = obj;
+                this.listBlocks = arr;
 
                 if (toObject) return obj;
-                else return res;
+                else return arr;
             })
     }
     
