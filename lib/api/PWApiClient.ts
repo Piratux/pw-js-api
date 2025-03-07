@@ -31,6 +31,8 @@ export default class PWApiClient {
     static listBlocks: ListBlockResult[] | undefined;
     /**
      * This will be undefined if getListBlocks() hasn't been run once.
+     * 
+     * NOTE: The keys are in UPPER_CASE form.
      */
     static listBlocksObj: Record<string, ListBlockResult> | undefined;
 
@@ -208,7 +210,7 @@ export default class PWApiClient {
                 const arr = [] as Array<ListBlockResult>; // PW doesn't sort the returned endpoint data despite data structure means it's perfectly capable
 
                 for (let i = 0, len = res.length; i < len; i++) {
-                    obj[res[i].PaletteId] = res[i];
+                    obj[res[i].PaletteId.toUpperCase()] = res[i];
                     arr[res[i].Id] = res[i];
                 }
 
