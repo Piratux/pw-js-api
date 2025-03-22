@@ -311,7 +311,7 @@ export default class PWGameClient
     }
 
     /**
-     * Adds a listener for the event type, it can even be a promise too.
+     * Adds listeners to the end of the chain for that event type, it can even be a promise too.
      * 
      * If the callback returns a specific string "STOP", it will prevent further listeners from being invoked.
      */
@@ -331,7 +331,7 @@ export default class PWGameClient
     }
 
     /**
-     * Adds a listener for the event type, it can even be a promise too.
+     * Inserts listeners at the start of the chain for that event type, it can even be a promise too.
      * 
      * If the callback returns a specific string "STOP", it will prevent further listeners from being invoked.
      */
