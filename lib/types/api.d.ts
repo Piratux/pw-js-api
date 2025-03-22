@@ -146,7 +146,7 @@ export interface ListBlockResult {
      */
     Layer: number;
     /**
-     * What the block ID was before the current update.
+     * EELVL ID.
      */
     LegacyId: number;
     /**
@@ -164,7 +164,9 @@ export interface ListBlockResult {
      */
     PaletteId: string;
     /**
-     * Unclear what this is.
+     * EELVL block arguments.
+     * 
+     * For example it can indicate block's rotation (for example for half blocks), indicate portal arguments, etc.
      */
     LegacyMorph?: number[];
 }
