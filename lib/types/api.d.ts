@@ -142,20 +142,6 @@ export interface ListBlockResult {
      */
     Id: number;
     /**
-     * 0 for Background, 1 for Foreground.
-     */
-    Layer: number;
-    /**
-     * EELVL ID.
-     */
-    LegacyId: number;
-    /**
-     * Unsigned 32 bit integer.
-     * 
-     * (If you need the hex string: use .toString(16) with 16 as the radix and trim off the leading FF. To convert it back to number, use parseInt(hexstring, 16))
-     */
-    MinimapColor?: number;
-    /**
      * Useful for mapping, allows you to identify the block in case the numeric ID changes.
      * 
      * This is what they refer to as block name for some reason.
@@ -163,6 +149,26 @@ export interface ListBlockResult {
      * NOTE: There may still be an occasion where the block's name is changed, for eg due to a typo.
      */
     PaletteId: string;
+    /**
+     * 0 for Background, 1 for Foreground.
+     */
+    Layer: number;
+    /**
+     * Unsigned 32 bit integer.
+     * 
+     * (If you need the hex string: use .toString(16) with 16 as the radix and trim off the leading FF. To convert it back to number, use parseInt(hexstring, 16))
+     */
+    MinimapColor?: number;
+    /**
+     * List of type of arg this block has.
+     * 
+     * For eg if it's a sign, it will be [0] where 0 indicates it's a String.
+     */
+    BlockDataArgs?: number[];
+    /**
+     * EELVL ID.
+     */
+    LegacyId: number;
     /**
      * EELVL block arguments.
      * 
