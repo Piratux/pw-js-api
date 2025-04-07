@@ -75,8 +75,8 @@ export default class PWGameClient
 
         if (!("token" in joinReq) || joinReq.token.length === 0) throw Error("Unable to secure a join key - is account details valid?");
 
-        const connectUrl = `${Endpoint.GameWS}/room/${joinReq.token}`
-            + (joinData === undefined ? "" : "?joinData=" + btoa(JSON.stringify(joinData)));
+        const connectUrl = `${Endpoint.GameWS}/ws?joinKey=${joinReq.token}`
+            + (joinData === undefined ? "" : "&joinData=" + btoa(JSON.stringify(joinData)));
 
         this.prevWorldId = roomId;
 
