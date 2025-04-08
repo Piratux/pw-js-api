@@ -241,8 +241,8 @@ export default class PWGameClient
      * Useful for those wary of security.
      */
     static joinWorld(joinKey: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) : Promise<PWGameClient> {
-        const connectUrl = `${Endpoint.GameWS}/room/${joinKey}`
-            + (obj?.joinData === undefined ? "" : "?joinData=" + btoa(JSON.stringify(obj.joinData)));
+        const connectUrl = `${Endpoint.GameWS}/ws?joinKey=${joinKey}`
+        + (obj?.joinData === undefined ? "" : "&joinData=" + btoa(JSON.stringify(obj.joinData)));
 
         const cli = new PWGameClient(obj?.gameSettings);
         
