@@ -150,7 +150,7 @@ export interface ListBlockResult {
      */
     PaletteId: string;
     /**
-     * 0 for Background, 1 for Foreground.
+     * 0 for Background, 1 for Foreground, 2 for Overlay.
      */
     Layer: number;
     /**
