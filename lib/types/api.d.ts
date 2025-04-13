@@ -168,7 +168,7 @@ export interface ListBlockResult {
     /**
      * EELVL ID.
      */
-    LegacyId: number;
+    LegacyId?: number;
     /**
      * EELVL block arguments.
      * 
