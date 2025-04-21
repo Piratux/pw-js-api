@@ -1,9 +1,9 @@
-import { setTimeout } from "worker-timers"
+import { customSetTimeout } from "./Timeout.js";
 
 export default class Queue {
     private _queue: Array<{ priority: boolean; func(): void;}> = [];
 
-    timeout: null | number;
+    timeout: NodeJS.Timeout | null | number;
     tokenLimit: number;
     interval: number;
 
@@ -40,7 +40,7 @@ export default class Queue {
         }
 
         if (this._queue.length !== 0 && this.timeout === null) {
-            this.timeout = setTimeout(() => {
+            this.timeout = customSetTimeout(() => {
                 this.timeout = null;
                 this.check();
             }, this.tokens < this.tokenLimit ? 1 : Math.max(0, this.lastReset + this.interval - Date.now()));
