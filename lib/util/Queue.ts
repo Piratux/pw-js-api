@@ -3,6 +3,9 @@ import { customSetTimeout } from "./Timeout.js";
 export default class Queue {
     private _queue: Array<{ priority: boolean; func(): void;}> = [];
 
+    /**
+     * Annoyingly settimeout returns timeout object in nodejs, number for anywhere else.
+     */
     timeout: NodeJS.Timeout | null | number;
     tokenLimit: number;
     interval: number;
