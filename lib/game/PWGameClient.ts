@@ -11,6 +11,8 @@ import Queue from "../util/Queue.js";
 import type { OmitRecursively, Optional, Promisable } from "../types/misc.js";
 import { isCustomPacket } from "../util/Misc.js";
 
+import { setTimeout } from "worker-timers"
+
 type SafeCheck<K extends keyof MergedEvents, State extends Partial<{ [K in keyof MergedEvents]: any }>> = State extends CustomBotEvents ? never : State[K];
 
 export default class PWGameClient
