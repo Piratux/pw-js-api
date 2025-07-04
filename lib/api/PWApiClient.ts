@@ -409,6 +409,8 @@ export default class PWApiClient {
             method = "POST";
         }
 
+        let status = 0;
+
         return fetch(url, {
             headers, method,
             body: body
@@ -416,9 +418,15 @@ export default class PWApiClient {
             if (res.status === 403) throw Error("Forbidden access - token invalid or unauthorised.");
             // else if (res.status !== 200) throw Error("")
 
+            status = res.status;
+
             if (res.headers.get("content-type")?.startsWith("application/json")) return res.json() as T;
             else return res.arrayBuffer() as T;
-        });
+        })
+        .then(data => {
+            if (status > 400) throw data;
+            else return data;
+        })
     }
 
 
