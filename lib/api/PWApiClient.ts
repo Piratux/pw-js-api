@@ -1,5 +1,5 @@
 import PWGameClient from "../game/PWGameClient.js";
-import type { APIFailure, AuthResultSuccess, CollectionResult, ColPlayer, ColQuery, ColWorld, JoinKeyResult, ListBlockResult, LobbyResult } from "../types/api.js";
+import type { APIFailure, AuthResultSuccess, CollectionResult, ColUser, ColQuery, ColWorld, JoinKeyResult, ListBlockResult, LobbyResult } from "../types/api.js";
 import type { GameClientSettings, WorldJoinData } from "../types/game.js";
 import { Endpoint } from "../util/Constants.js";
 import { queryToString } from "../util/Misc.js";
@@ -241,9 +241,9 @@ export default class PWApiClient {
      * Returns the collection result of the query - players.
      * Default: page - 1, perPage - 10
      */
-    getPlayers(page: number, perPage: number, query?: ColQuery<ColPlayer>) : Promise<CollectionResult<ColPlayer>>;
-    getPlayers(query: ColQuery<ColPlayer>) : Promise<CollectionResult<ColPlayer>>;
-    getPlayers(page: number | ColQuery<ColPlayer> = 1, perPage: number = 10, query?: ColQuery<ColPlayer>) {
+    getPlayers(page: number, perPage: number, query?: ColQuery<ColUser>) : Promise<CollectionResult<ColUser>>;
+    getPlayers(query: ColQuery<ColUser>) : Promise<CollectionResult<ColUser>>;
+    getPlayers(page: number | ColQuery<ColUser> = 1, perPage: number = 10, query?: ColQuery<ColUser>) {
         if (typeof page === "object") {
             query = page;
             page = 1;
@@ -256,15 +256,15 @@ export default class PWApiClient {
      * Returns the collection result of the query - players.
      * Default: page - 1, perPage - 10
      */
-    static getPlayers(page: number, perPage: number, query?: ColQuery<ColPlayer>) : Promise<CollectionResult<ColPlayer>>;
-    static getPlayers(query: ColQuery<ColPlayer>) : Promise<CollectionResult<ColPlayer>>;
-    static getPlayers(page: number | ColQuery<ColPlayer> = 1, perPage: number = 10, query?: ColQuery<ColPlayer>) {
+    static getPlayers(page?: number, perPage?: number, query?: ColQuery<ColUser>) : Promise<CollectionResult<ColUser>>;
+    static getPlayers(query: ColQuery<ColUser>) : Promise<CollectionResult<ColUser>>;
+    static getPlayers(page: number | ColQuery<ColUser> = 1, perPage: number = 10, query?: ColQuery<ColUser>) {
         if (typeof page === "object") {
             query = page;
             page = 1;
         }
 
-        return this.request<CollectionResult<ColPlayer>>(`${Endpoint.Api}/api/collections/public_profiles/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
+        return this.request<CollectionResult<ColUser>>(`${Endpoint.Api}/api/collections/users/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
     }
 
     /**
@@ -286,7 +286,7 @@ export default class PWApiClient {
      * Returns the collection result of the query - public worlds.
      * Default: page - 1, perPage - 10
      */
-    static getPublicWorlds(page: number, perPage: number, query?: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
+    static getPublicWorlds(page?: number, perPage?: number, query?: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
     static getPublicWorlds(query: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
     static getPublicWorlds(page: number | ColQuery<ColWorld> = 1, perPage: number = 10, query?: ColQuery<ColWorld>) {
         if (typeof page === "object") {
@@ -294,7 +294,7 @@ export default class PWApiClient {
             page = 1;
         }
 
-        return this.request<CollectionResult<ColWorld>>(`${Endpoint.Api}/api/collections/public_worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
+        return this.request<CollectionResult<ColWorld>>(`${Endpoint.Api}/api/collections/worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
     }
 
     /**
@@ -364,15 +364,16 @@ export default class PWApiClient {
     /**
      * Note that username is cap sensitive, and may require you to use toUppercase
      */
-    getPlayerByName(username: string) {
+    getPlayerByName(username: string) : Promise<ColUser | undefined> {
         return PWApiClient.getPlayerByName(username);
     }
 
     /**
      * Note that username is cap sensitive, and may require you to use toUppercase
      */
-    static getPlayerByName(username: string) {
-        return this.getPlayers(1, 1, { filter: { username } });
+    static getPlayerByName(username: string) : Promise<ColUser | undefined> {
+        return this.getPlayers(1, 1, { filter: { username } })
+            .then(res => res.items[0]);
     }
 
     // This doesn't seem to work so I commented it out, not removing it as there might be an oversight idk

@@ -55,38 +55,50 @@ export interface CollectionResult<T> {
     items: T[];
 }
 
-interface ColItem {
+interface ColItem<T extends string = string> {
     collectionId: string;
-    collectionName: string;
+    collectionName: T;
     /**
-     * Date.
+     * Date/time string, this can be converted into Date.
      */
     created: string;
+    /**
+     * Date/time string, this can be converted into Date.
+     */
+    updated: string;
+    id: string;
 }
 
-export interface ColWorld extends ColItem {
-    data: string;
-    description: "";
+export interface ColWorld extends ColItem<"worlds"> {
+    description: string;
     height: number;
-    width: number;
     id: string;
+    /**
+     * Typically always is 50.
+     */
+    maxPlayers: number;
     minimap: string;
     minimapEnabled: boolean;
+    /**
+     * Owner's user ID
+     */
     owner: string;
     plays: number;
     title: string;
     /**
-     * Date.
+     * If the worlds are from getPublicWorlds, this will always be public.
      */
-    updated: string;
-    visibility: string;
+    visibility: "public" | "private" | "unlisted" | "friends";
+    width: number;
+    woots: number;
 }
 
-export interface ColPlayer extends ColItem {
-    banned: boolean;
+export interface ColUser extends ColItem<"users"> {
     face: number;
-    id: string;
-    role: string;
+    role: "" | "admin" | "committee" | "dev" | "mod";
+    /**
+     * This will always be in upper case.
+     */
     username: string;
 }
 
