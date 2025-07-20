@@ -383,7 +383,7 @@ export default class PWApiClient {
     // }
 
     /**
-     * IMPORTANT: This will return JSON for any responses that have the content-type of json, anything else will be sent back as Uint8array.
+     * IMPORTANT: This will return JSON for any responses that have the content-type of json, anything else will be sent back as ArrayBuffer.
      * If you're expecting raw bytes, make sure the endpoint is guaranteed to give you that otherwise there isn't a reason.
      * 
      * This requires the manager to be authenticated, it will error if otherwise.
@@ -392,7 +392,7 @@ export default class PWApiClient {
      * @param token The API token (not join key), this is if you wish to use authenticated API calls without having to instantise an api client yourself.
      */
     static request<T>(url: string, body?: Record<string, any>|string, token?: string) : Promise<T> {
-        if (!(url.startsWith(Endpoint.Api) || url.startsWith(Endpoint.GameHTTP))) throw Error("URL given does not have the correct endpoint URL, this is for safety.");
+        if (!(url.startsWith(Endpoint.Api) || url.startsWith(Endpoint.GameHTTP) || url.startsWith(Endpoint.Client + "/atlases/"))) throw Error("URL given does not have the correct endpoint URL, this is for safety.");
 
         const headers:Record<string, string> = {
             // "user-agent": "PW-TS-API/0.0.1"
