@@ -1,8 +1,8 @@
 import PWGameClient from "../game/PWGameClient.js";
-import type { APIFailure, AuthResultSuccess, CollectionResult, ColUser, ColQuery, ColWorld, JoinKeyResult, ListBlockResult, LobbyResult } from "../types/api.js";
+import type { APIFailure, AuthResultSuccess, CollectionResult, ColUser, ColQuery, ColWorld, JoinKeyResult, ListBlockResult, LobbyResult, ApiClientOptions } from "../types/api.js";
 import type { GameClientSettings, WorldJoinData } from "../types/game.js";
 import { Endpoint } from "../util/Constants.js";
-import { queryToString } from "../util/Misc.js";
+import { mergeObjects, queryToString } from "../util/Misc.js";
 
 /**
  * Note if you want to join a world, use new PWGameClient() then run .init()
@@ -20,6 +20,8 @@ export default class PWApiClient {
         email: "",
         password: ""
     }
+
+    options: ApiClientOptions;
 
     loggedIn = false;
 
@@ -40,13 +42,25 @@ export default class PWApiClient {
      * This will create an instance of the class, as you're using the token, it will automatically be marked as loggedIn.
      * @param token Must be a valid account token.
      */
-    constructor(token: string);
+    constructor(token: string, options?: ApiClientOptions);
     /**
      * This will create an instance of the class, as you're putting the account details, you must manually authenticate before invoking restricted calls including joinRoom.
      * If populating email and password, you must manually authenticate yourself.
      */
-    constructor(email: string, password: string);
-    constructor(email: string, password?: string) {
+    constructor(email: string, password: string, options?: ApiClientOptions);
+    constructor(email: string, password?: string | ApiClientOptions, options?: ApiClientOptions) {
+        this.options = {
+            endpoints: {
+                Api: Endpoint.Api,
+                GameHTTP: Endpoint.GameHTTP
+            }
+        }
+
+        if (typeof password === "object") {
+            this.options = mergeObjects(this.options, password);
+            password = undefined;
+        } else if (options) this.options = mergeObjects(this.options, options);
+
         if (password === undefined) {
             this.token = email;
             this.loggedIn = true;
@@ -77,8 +91,8 @@ export default class PWApiClient {
             password = this.account.password;
         }
 
-        return this.request<AuthResultSuccess | APIFailure>(`${Endpoint.Api}/api/collections/users/auth-with-password`,
-            { identity: email, password }
+        return this.request<AuthResultSuccess | APIFailure>(`${this.options.endpoints.Api}/api/collections/users/auth-with-password`,
+            { identity: email, password }, undefined, this.options.endpoints.Api !== Endpoint.Api
         ).then(res => {
             if ("token" in res) {
                 this.token = res.token;
@@ -93,7 +107,7 @@ export default class PWApiClient {
      * Internal.
      */
     getJoinKey(roomType: string, roomId: string) {
-        return this.request<JoinKeyResult>(`${Endpoint.Api}/api/joinkey/${roomType}/${roomId}`, undefined, true);
+        return this.request<JoinKeyResult>(`${this.options.endpoints.Api}/api/joinkey/${roomType}/${roomId}`, undefined, true, this.options.endpoints.Api !== Endpoint.Api);
     }
 
     /**
@@ -126,14 +140,14 @@ export default class PWApiClient {
      * Non-authenticated. This will refresh the room types each time, so make sure to check if roomTypes is available.
      */
     getRoomTypes() {
-        return PWApiClient.getRoomTypes();
+        return PWApiClient.getRoomTypes(this.options.endpoints.GameHTTP);
     }
 
     /**
      * Non-authenticated. This will refresh the room types each time, so make sure to check if roomTypes is available.
      */
-    static getRoomTypes() {
-        return this.request<string[]>(`${Endpoint.GameHTTP}/listroomtypes`)
+    static getRoomTypes(EndpointURL: string = Endpoint.GameHTTP) {
+        return this.request<string[]>(`${EndpointURL}/listroomtypes`, undefined, undefined, EndpointURL !== Endpoint.GameHTTP)
             .then(res => {
                 PWApiClient.roomTypes = res;
 
@@ -181,9 +195,9 @@ export default class PWApiClient {
     getListBlocks(skipCache?: boolean, toObject?: false) : Promise<ListBlockResult[]>;
     getListBlocks(skipCache = false, toObject?: boolean) {
         // Yes, this actually gets typescript compiler to stop moaning
-        if (toObject) return PWApiClient.getListBlocks(skipCache, toObject);
+        if (toObject) return PWApiClient.getListBlocks(skipCache, toObject, this.options.endpoints.GameHTTP);
 
-        return PWApiClient.getListBlocks(skipCache, toObject);
+        return PWApiClient.getListBlocks(skipCache, toObject, this.options.endpoints.GameHTTP);
     }
 
     /**
@@ -196,15 +210,15 @@ export default class PWApiClient {
      * 
      * Note: This library also exports "BlockNames" which is an enum containing the block names along with their respective id.
      */
-    static async getListBlocks(skipCache: boolean | undefined, toObject: true) : Promise<Record<string, ListBlockResult>>;
-    static async getListBlocks(skipCache?: boolean, toObject?: false) : Promise<ListBlockResult[]>;
-    static async getListBlocks(skipCache = false, toObject?: boolean) {
+    static async getListBlocks(skipCache: boolean | undefined, toObject: true, EndpointURL?: string) : Promise<Record<string, ListBlockResult>>;
+    static async getListBlocks(skipCache?: boolean, toObject?: false, EndpointURL?: string) : Promise<ListBlockResult[]>;
+    static async getListBlocks(skipCache = false, toObject?: boolean, EndpointURL = Endpoint.GameHTTP) {
         if (!skipCache) {
             if (this.listBlocks !== undefined && !toObject) return this.listBlocks;
             if (this.listBlocksObj !== undefined && toObject) return this.listBlocksObj;
         }
 
-        return this.request<ListBlockResult[]>(`${Endpoint.GameHTTP}/listblocks`)
+        return this.request<ListBlockResult[]>(`${EndpointURL}/listblocks`, undefined, undefined, EndpointURL !== Endpoint.GameHTTP)
             .then(res => {
                 const obj = {} as Record<string, ListBlockResult>;
                 const arr = [] as Array<ListBlockResult>; // PW doesn't sort the returned endpoint data despite data structure means it's perfectly capable
@@ -234,7 +248,7 @@ export default class PWApiClient {
             page = 1;
         }
 
-        return this.request<CollectionResult<ColWorld>>(`${Endpoint.Api}/api/collections/worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`, undefined, true);
+        return this.request<CollectionResult<ColWorld>>(`${this.options.endpoints.Api}/api/collections/worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`, undefined, true, this.options.endpoints.Api !== Endpoint.Api);
     }
 
     /**
@@ -249,22 +263,27 @@ export default class PWApiClient {
             page = 1;
         }
 
-        return PWApiClient.getPlayers(page, perPage, query);
+        return PWApiClient.getPlayers(page, perPage, query, this.options.endpoints.Api);
     }
 
     /**
      * Returns the collection result of the query - players.
      * Default: page - 1, perPage - 10
      */
-    static getPlayers(page?: number, perPage?: number, query?: ColQuery<ColUser>) : Promise<CollectionResult<ColUser>>;
-    static getPlayers(query: ColQuery<ColUser>) : Promise<CollectionResult<ColUser>>;
-    static getPlayers(page: number | ColQuery<ColUser> = 1, perPage: number = 10, query?: ColQuery<ColUser>) {
+    static getPlayers(page?: number, perPage?: number, query?: ColQuery<ColUser>, EndpointURL?: string) : Promise<CollectionResult<ColUser>>;
+    static getPlayers(query: ColQuery<ColUser>, EndpointURL?: string) : Promise<CollectionResult<ColUser>>;
+    static getPlayers(page: number | ColQuery<ColUser> = 1, perPage: number | string = 10, query?: ColQuery<ColUser>, EndpointURL: string = Endpoint.Api) {
         if (typeof page === "object") {
+            if (typeof perPage === "string") {
+                EndpointURL = perPage;
+                perPage = 10;
+            }
+
             query = page;
             page = 1;
         }
 
-        return this.request<CollectionResult<ColUser>>(`${Endpoint.Api}/api/collections/users/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
+        return this.request<CollectionResult<ColUser>>(`${EndpointURL}/api/collections/users/records?page=${page}&perPage=${perPage}${queryToString(query)}`, undefined, undefined, EndpointURL !== Endpoint.Api);
     }
 
     /**
@@ -279,45 +298,88 @@ export default class PWApiClient {
             page = 1;
         }
 
-        return PWApiClient.getPublicWorlds(page, perPage, query);
+        return PWApiClient.getPublicWorlds(page, perPage, query, this.options.endpoints.Api);
     }
 
     /**
      * Returns the collection result of the query - public worlds.
      * Default: page - 1, perPage - 10
      */
-    static getPublicWorlds(page?: number, perPage?: number, query?: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
-    static getPublicWorlds(query: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
-    static getPublicWorlds(page: number | ColQuery<ColWorld> = 1, perPage: number = 10, query?: ColQuery<ColWorld>) {
+    static getPublicWorlds(page?: number, perPage?: number, query?: ColQuery<ColWorld>, EndpointURL?: string) : Promise<CollectionResult<ColWorld>>;
+    static getPublicWorlds(query: ColQuery<ColWorld>, EndpointURL?: string) : Promise<CollectionResult<ColWorld>>;
+    static getPublicWorlds(page: number | ColQuery<ColWorld> = 1, perPage: number | string = 10, query?: ColQuery<ColWorld>, EndpointURL: string = Endpoint.Api) {
+        if (typeof page === "object") {
+            if (typeof perPage === "string") {
+                EndpointURL = perPage;
+                perPage = 10;
+            }
+
+            query = page;
+            page = 1;
+        }
+
+        return this.request<CollectionResult<ColWorld>>(`${EndpointURL}/api/collections/worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`, undefined, undefined, EndpointURL !== Endpoint.Api);
+    }
+
+    /**
+     * Returns the collection result of the query - public worlds.
+     * Default: page - 1, perPage - 10
+     */
+    getWootedWorlds(page: number, perPage: number, query?: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
+    getWootedWorlds(query: ColQuery<ColWorld>) : Promise<CollectionResult<ColWorld>>;
+    getWootedWorlds(page: number | ColQuery<ColWorld> = 1, perPage: number = 10, query?: ColQuery<ColWorld>) {
         if (typeof page === "object") {
             query = page;
             page = 1;
         }
 
-        return this.request<CollectionResult<ColWorld>>(`${Endpoint.Api}/api/collections/worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`);
+        return PWApiClient.getWootedWorlds(page, perPage, query, this.options.endpoints.Api);
+    }
+
+    /**
+     * NOTE: It will always return empty result if not authenticated.
+     * 
+     * Returns the collection result of the query - wooted worlds.
+     * Default: page - 1, perPage - 10
+     */
+    static getWootedWorlds(page?: number, perPage?: number, query?: ColQuery<ColWorld>, EndpointURL?: string) : Promise<CollectionResult<ColWorld>>;
+    static getWootedWorlds(query: ColQuery<ColWorld>, EndpointURL?: string) : Promise<CollectionResult<ColWorld>>;
+    static getWootedWorlds(page: number | ColQuery<ColWorld> = 1, perPage: number | string = 10, query?: ColQuery<ColWorld>, EndpointURL: string = Endpoint.Api) {
+        if (typeof page === "object") {
+            if (typeof perPage === "string") {
+                EndpointURL = perPage;
+                perPage = 10;
+            }
+
+            query = page;
+            page = 1;
+        }
+
+        return this.request<CollectionResult<ColWorld>>(`${EndpointURL}/api/collections/worlds/records?page=${page}&perPage=${perPage}${queryToString(query)}`, undefined, undefined, EndpointURL !== Endpoint.Api);
     }
 
     /**
      * Returns the lobby result.
      */
     getVisibleWorlds() {
-        return PWApiClient.getVisibleWorlds();
+        return PWApiClient.getVisibleWorlds(this.options.endpoints.GameHTTP);
     }
 
     /**
      * Returns the lobby result.
      */
-    static getVisibleWorlds() {
+    static getVisibleWorlds(EndpointURL: string = Endpoint.GameHTTP) {
         if (this.roomTypes.length === 0) throw Error("roomTypes is empty - use getRoomTypes first!");
 
-        return this.request<LobbyResult>(`${Endpoint.GameHTTP}/room/list/${this.roomTypes[0]}`)
+        return this.request<LobbyResult>(`${EndpointURL}/room/list/${this.roomTypes[0]}`, undefined, undefined, EndpointURL !== Endpoint.GameHTTP)
     }
 
     /**
      * Returns the world, if it exists and is public.
      */
     getPublicWorld(id: string) : Promise<ColWorld | undefined> {
-        return PWApiClient.getPublicWorld(id);
+        return this.getPublicWorlds(1, 1, { filter: { id } })
+            .then(res => res.items[0]);
     }
 
     /**
@@ -337,23 +399,23 @@ export default class PWApiClient {
      */
     getMinimap(world: ColWorld | { id: string, minimap: string }, toURL: true) : string;
     getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false) {
-        if (toURL) return `${Endpoint.Api}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
+        if (toURL) return `${this.options.endpoints.Api}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
 
-        return PWApiClient.getMinimap(world, toURL);
+        return PWApiClient.getMinimap(world, toURL, this.options.endpoints.Api);
     }
 
     /**
      * Gets the raw minimap bytes, the format may differ depending on the environment (Bun, NodeJS, Browser etc).
      */
-    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL?: false) : Promise<ArrayBuffer>
+    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL?: false, EndpointURL?: string) : Promise<ArrayBuffer>
     /**
      * Gives the URL pointing to the minimap image.
      */
-    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL: true) : string;
-    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false) {
-        if (toURL) return `${Endpoint.Api}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
+    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL: true, EndpointURL?: string) : string;
+    static getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false, EndpointURL = Endpoint.Api) {
+        if (toURL) return `${EndpointURL}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
 
-        return this.request<ArrayBuffer|APIFailure>(this.getMinimap(world, true))
+        return this.request<ArrayBuffer|APIFailure>(this.getMinimap(world, true, EndpointURL), undefined, undefined, EndpointURL !== Endpoint.Api)
             .then(res => {
                 if ("message" in res) throw Error("Minimap doesn't exist, the world may be unlisted.");
 
@@ -365,7 +427,8 @@ export default class PWApiClient {
      * Note that username is cap sensitive, and may require you to use toUppercase
      */
     getPlayerByName(username: string) : Promise<ColUser | undefined> {
-        return PWApiClient.getPlayerByName(username);
+        return this.getPlayers(1, 1, { filter: { username } })
+            .then(res => res.items[0]);
     }
 
     /**
@@ -390,9 +453,10 @@ export default class PWApiClient {
      * @param url Requires to be a full URL with endpoint unfortunately. It will throw error if it doesn't match any of the 2 HTTP endpoint URLs.
      * @param body If this is passed, the request will become a POST. (If you need to send a POST but has no data, just send an empty object).
      * @param token The API token (not join key), this is if you wish to use authenticated API calls without having to instantise an api client yourself.
+     * @param overrideURL If true, this will skip checking if the URL truly belongs to PW (production wise).
      */
-    static request<T>(url: string, body?: Record<string, any>|string, token?: string) : Promise<T> {
-        if (!(url.startsWith(Endpoint.Api) || url.startsWith(Endpoint.GameHTTP) || url.startsWith(Endpoint.Client + "/atlases/"))) throw Error("URL given does not have the correct endpoint URL, this is for safety.");
+    static request<T>(url: string, body?: Record<string, any>|string, token?: string, overrideURL = false) : Promise<T> {
+        if (!overrideURL && !(url.startsWith(Endpoint.Api) || url.startsWith(Endpoint.GameHTTP) || url.startsWith(Endpoint.Client + "/atlases/"))) throw Error("URL given does not have the correct endpoint URL, this is for safety.");
 
         const headers:Record<string, string> = {
             // "user-agent": "PW-TS-API/0.0.1"
@@ -438,8 +502,9 @@ export default class PWApiClient {
      * @param url Requires to be a full URL with endpoint unfortunately. It will throw error if it doesn't match any of the 2 HTTP endpoint URLs.
      * @param body If this is passed, the request will become a POST. (If you need to send a POST but has no data, just send an empty object).
      * @param isAuthenticated If true, this will send the token as the header.
+     * @param overrideURL If true, this will skip checking if the URL truly belongs to PW (production wise).
      */
-    protected request<T>(url: string, body?: Record<string, any>|string, isAuthenticated = false) : Promise<T> {
-        return PWApiClient.request<T>(url, body, isAuthenticated ? this.token : undefined)
+    protected request<T>(url: string, body?: Record<string, any>|string, isAuthenticated = false, overrideURL = false) : Promise<T> {
+        return PWApiClient.request<T>(url, body, isAuthenticated ? this.token : undefined, overrideURL)
     }
 }

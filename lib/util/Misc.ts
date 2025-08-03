@@ -48,6 +48,36 @@ export function queryToString<T extends ColItem>(query: ColQuery<T> | undefined)
     return str;
 }
 
+/**
+ * This takes in two parameters - Object A and B.
+ * 
+ * Object A will be used as the object to add properties from Object B to.
+ * If some of the properties in Object B are also objects, this will run recursively to ensure they are all added.
+ * 
+ * Annoyingly, due to how Typescript works, the only way I could get an object with combined properties is if I return it so rip mutability.
+ * 
+ * IGNORE THE LAST TWO PARAMETERS.
+ */
+export function mergeObjects<A extends Record<string, any>, B extends Record<string, any>>(objA: A, objB: B, depth = 0, prevObj?: any) : A & B {
+    const keys = Object.keys(objB);
+    const obj = depth > 0 ? objA : structuredClone(objA) as any;
+
+    for (let i = 0; i < keys.length; i++) {
+        const propA = objA[keys[i]];
+        const propB = objB[keys[i]];
+
+        if (typeof propB === "object" && propB !== null) {
+            if (typeof propA !== "object" || propA === null) {
+                obj[keys[i]] = {};
+            }
+
+            mergeObjects(obj[keys[i]], propB, depth + 1)
+        } else obj[keys[i]] = propB;
+    }
+
+    return obj;
+}
+
 // console.log(queryToString<ColWorld>({ filter: { id: "a" } }));
 // console.log(queryToString<ColWorld>({ filter: { id: "a", created: "nice" } }));
 // console.log(queryToString<ColWorld>({ filter: "a~b,ok=lol" }));

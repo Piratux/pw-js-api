@@ -188,3 +188,15 @@ export interface ListBlockResult {
      */
     LegacyMorph?: number[];
 }
+
+export interface ApiClientOptions {
+    /**
+     * This includes the http(s):// part.
+     * 
+     * Can be changed for development environment.
+     */
+    endpoints: Partial<{
+        Api?: string,
+        GameHTTP?: string,
+    }>
+}
