@@ -52,7 +52,8 @@ export default class PWApiClient {
         this.options = {
             endpoints: {
                 Api: Endpoint.Api,
-                GameHTTP: Endpoint.GameHTTP
+                GameHTTP: Endpoint.GameHTTP,
+                GameWS: Endpoint.GameWS,
             }
         }
 

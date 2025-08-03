@@ -64,7 +64,7 @@ export default class PWGameClient
      * 
      * (This returns itself for chaining)
      */
-    async joinWorld(roomId: string, joinData?: WorldJoinData) : Promise<this> {
+    async joinWorld(roomId: string, joinData?: WorldJoinData, EndpointURL: string = Endpoint.GameWS) : Promise<this> {
         if (!this.api) throw Error("This can only work if you've used APIClient to join the world in the first place.");
 
         if (this.socket?.readyState === WebSocket.CONNECTING) throw Error("Already trying to connect.");
@@ -76,7 +76,7 @@ export default class PWGameClient
 
         if (!("token" in joinReq) || joinReq.token.length === 0) throw Error("Unable to secure a join key - is account details valid?");
 
-        const connectUrl = `${Endpoint.GameWS}/ws?joinKey=${joinReq.token}`
+        const connectUrl = `${EndpointURL}/ws?joinKey=${joinReq.token}`
             + (joinData === undefined ? "" : "&joinData=" + btoa(JSON.stringify(joinData)));
 
         this.prevWorldId = roomId;
@@ -241,8 +241,8 @@ export default class PWGameClient
      * 
      * Useful for those wary of security.
      */
-    static joinWorld(joinKey: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }) : Promise<PWGameClient> {
-        const connectUrl = `${Endpoint.GameWS}/ws?joinKey=${joinKey}`
+    static joinWorld(joinKey: string, obj?: { joinData?: WorldJoinData, gameSettings?: Partial<GameClientSettings> }, EndpointURL: string = Endpoint.GameWS) : Promise<PWGameClient> {
+        const connectUrl = `${EndpointURL}/ws?joinKey=${joinKey}`
         + (obj?.joinData === undefined ? "" : "&joinData=" + btoa(JSON.stringify(obj.joinData)));
 
         const cli = new PWGameClient(obj?.gameSettings);

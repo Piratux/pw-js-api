@@ -198,5 +198,6 @@ export interface ApiClientOptions {
     endpoints: Partial<{
         Api?: string,
         GameHTTP?: string,
+        GameWS?: string
     }>
 }
