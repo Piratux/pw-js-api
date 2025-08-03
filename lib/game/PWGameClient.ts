@@ -64,7 +64,7 @@ export default class PWGameClient
      * 
      * (This returns itself for chaining)
      */
-    async joinWorld(roomId: string, joinData?: WorldJoinData, EndpointURL: string = Endpoint.GameWS) : Promise<this> {
+    async joinWorld(roomId: string, joinData?: WorldJoinData, EndpointURL: string = this.api?.options.endpoints.GameWS ?? Endpoint.GameWS) : Promise<this> {
         if (!this.api) throw Error("This can only work if you've used APIClient to join the world in the first place.");
 
         if (this.socket?.readyState === WebSocket.CONNECTING) throw Error("Already trying to connect.");
