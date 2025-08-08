@@ -13,8 +13,5 @@
   "dependencies": {
     "pw-js-api": "^0.3.11",
     "pw-js-world": "^0.4.3"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.3"
   }
 }
