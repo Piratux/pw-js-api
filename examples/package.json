@@ -1,6 +1,6 @@
 {
   "name": "pw-snake-js-bot",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "An example bot that does simple snake and ping command",
   "main": "./index.js",
   "scripts": {
@@ -11,7 +11,8 @@
   "license": "Unlicense",
   "type": "module",
   "dependencies": {
-    "pw-js-api": "^0.0.5"
+    "pw-js-api": "^0.3.11",
+    "pw-js-world": "^0.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.3"
