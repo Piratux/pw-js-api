@@ -394,12 +394,12 @@ export default class PWApiClient {
     /**
      * Gets the raw minimap bytes, the format may differ depending on the environment (Bun, NodeJS, Browser etc).
      */
-    getMinimap(world: ColWorld | { id: string, minimap: string }, toURL?: false) : Promise<Buffer>
+    getMinimap(world: ColWorld | { id: string, minimap: string }, toURL?: false) : Promise<ArrayBuffer>
     /**
      * Gives the URL pointing to the minimap image.
      */
     getMinimap(world: ColWorld | { id: string, minimap: string }, toURL: true) : string;
-    getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false) {
+    getMinimap(world: ColWorld | { id: string, minimap: string }, toURL = false) : Promise<ArrayBuffer> | string {
         if (toURL) return `${this.options.endpoints.Api}/api/files/rhrbt6wqhc4s0cp/${world.id}/${world.minimap}`;
 
         return PWApiClient.getMinimap(world, toURL, this.options.endpoints.Api);

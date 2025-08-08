@@ -1,6 +1,6 @@
-import type { AtlasesResult } from "../types/atlases";
-import { Endpoint } from "../util/Constants";
-import PWApiClient from "./PWApiClient";
+import type { AtlasesResult } from "../types/atlases.js";
+import { Endpoint } from "../util/Constants.js";
+import PWApiClient from "./PWApiClient.js";
 
 /**
  * This standalone class has all (static) functions related to the atlases.
