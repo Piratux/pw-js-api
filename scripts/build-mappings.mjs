@@ -3,7 +3,7 @@ import { writeFile } from "fs/promises";
 /**
  * @type {import("../lib/types/api").ListBlockResult[]}
  */
-const mappings = await fetch("https://game.pixelwalker.net/listblocks")
+const mappings = await fetch("https://server.pixelwalker.net/listblocks")
     .then(res => res.json());
 
 // const entries = Object.entries(mappings);
