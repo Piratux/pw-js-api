@@ -141,8 +141,11 @@ export default class PWGameClient
                     }
                 } catch (err) {
                     this.invoke("debug", "Unable to execute all hooks safely");
-                    // TODO: separate event for error
-                    console.error(err);
+
+                    this.invoke("error", {
+                        type: packet.case,
+                        error: err
+                    });
 
                     states = {};
                 }
@@ -295,7 +298,7 @@ export default class PWGameClient
     /**
      * This is different to addCallback as all hooks (regardless of the type) will execute first before the callbacks, each hook may modify something or do something in the background
      * and may pass it to callbacks (via the second parameter in callbacks). If an error occurs while executing one of the hooks,
-     * the execution of hooks will halt for that packet and callbacks will run without the states.
+     * the hooks after that and the callbacks will not run.
      * 
      * NOTE: This is permanent, if a hook is added, it can't be removed.
      */
@@ -382,25 +385,45 @@ export default class PWGameClient
             count: 0, stopped: false
         };
 
-        if (cbs === undefined) return result;
-
-        for (let i = 0, len = cbs.length; i < len; i++) {
-            const res = await (isCustomPacket(type) ? cbs[i](data) : cbs[i](data, states));
-
-            result.count++;
-
-            if (typeof res === "object") {
-                const keys = Object.keys(res);
-
-                for (let j = 0, jen = keys.length; j < jen; j++) {
-                    data[keys[j]] = res[keys[j]];
-                }
+        if (cbs === undefined || cbs.length === 0) {
+            if (type === "error") {
+                throw data.error;
             }
 
-            if (res === "STOP") {
-                result.stopped = true;
+            return result;
+        }
 
-                return result;
+        for (let i = 0, len = cbs.length; i < len; i++) {
+            // This is in try catch as sync functions erroring can't be caught even if await is used
+            try {
+                const res = await (isCustomPacket(type) ? cbs[i](data) : cbs[i](data, states));
+
+                result.count++;
+
+                if (typeof res === "object") {
+                    const keys = Object.keys(res);
+
+                    for (let j = 0, jen = keys.length; j < jen; j++) {
+                        data[keys[j]] = res[keys[j]];
+                    }
+                }
+
+                if (res === "STOP") {
+                    result.stopped = true;
+
+                    return result;
+                }
+            } catch (err) {
+                if (type === "error") {
+                    // How would we get here wtf
+                    // Throwing back the original error preventing from this happening again. 
+                    throw data.error;
+                }
+
+                this.invoke("error", {
+                    type,
+                    error: err
+                });
             }
         }
 

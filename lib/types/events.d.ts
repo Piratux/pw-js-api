@@ -18,6 +18,20 @@ export type CustomBotEvents = {
      * CUSTOM: 
      */
     debug: (string);
+
+    /**
+     * CUSTOM: this throws if there are errors thrown during the internal processing of packets.
+     */
+    error: {
+        /**
+         * Packet case, for eg "ping" or "playerInitPacket" etc
+         */
+        type?: string,
+        /**
+         * Most typically it's an Error object
+         */
+        error: unknown,
+    }
 }
 
 export type MergedEvents = WorldEvents & CustomBotEvents;
